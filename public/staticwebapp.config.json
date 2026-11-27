@@ -1,0 +1,23 @@
+{
+  "routes": [
+    { "route": "/sw.js", "headers": { "cache-control": "no-cache" } },
+    { "route": "/manifest.webmanifest", "headers": { "cache-control": "no-cache" } }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": [
+      "/assets/*",
+      "/cars/*",
+      "/downloads/*",
+      "/*.svg",
+      "/*.png",
+      "/*.ico",
+      "/*.js",
+      "/*.webmanifest"
+    ]
+  },
+  "mimeTypes": {
+    ".apk": "application/vnd.android.package-archive",
+    ".webmanifest": "application/manifest+json"
+  }
+}

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- base: './' (สำหรับแอป Android) + base href="/" เพื่อให้รีเฟรชหน้าลึก เช่น /trip/xxx บนเว็บยังโหลดไฟล์ได้ -->
+    <base href="/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#003D7C" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="FleetGo" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <title>FleetGo — ระบบจองรถองค์กร</title>
+    <!--
+      หน้า Fallback เมื่อไม่มีอินเทอร์เน็ต (ใช้ CSS/JS ในไฟล์นี้ทั้งหมด เพื่อให้แสดงได้แม้โหลดอะไรไม่ได้)
+      แสดงเมื่อ: เครื่องออฟไลน์ หรือแอป Android (Capacitor) โหลดเว็บจาก server.url ไม่สำเร็จแล้วถอยมาเปิดไฟล์นี้ในเครื่อง (server.errorPath)
+    -->
+    <style>
+      #fg-offline { display: none; }
+      html.fg-offline #root { display: none; }
+      html.fg-offline body { margin: 0; background: #fff; }
+      html.fg-offline #fg-offline {
+        display: flex; min-height: 100dvh; box-sizing: border-box; flex-direction: column; align-items: center; justify-content: center;
+        padding: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px), 24px) 24px max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px), 24px);
+        font-family: 'IBM Plex Sans Thai', system-ui, -apple-system, 'Segoe UI', sans-serif; color: #0b1f3a; text-align: center;
+      }
+      #fg-offline .mark { position: relative; width: 56px; height: 56px; border-radius: 14px; background: #003d7c; }
+      #fg-offline .mark::after { content: ''; position: absolute; right: 11px; bottom: 11px; width: 14px; height: 14px; border-radius: 50%; background: #fad407; }
+      #fg-offline h1, #fg-offline p { text-wrap: balance; }
+      #fg-offline h1 { margin: 24px 0 0; max-width: 300px; font-size: 20px; line-height: 1.5; font-weight: 600; }
+      #fg-offline p { margin: 8px 0 0; max-width: 300px; font-size: 14px; line-height: 1.6; color: #5b6678; }
+      #fg-offline button {
+        margin-top: 28px; min-width: 200px; height: 48px; padding: 0 24px; border: 0; border-radius: 12px; background: #003d7c; color: #fff;
+        font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent;
+      }
+      #fg-offline button:active { background: #002c5a; }
+      #fg-offline button:disabled { opacity: 0.6; }
+    </style>
+    <script>
+      ;(function () {
+        var WEB_URL = '%VITE_WEB_URL%'
+        var hasWebUrl = /^https:\/\//.test(WEB_URL)
+        // แอป Android เปิดไฟล์ในเครื่อง (https://localhost) แทนเว็บจริง = โหลดเว็บจากเซิร์ฟเวอร์ไม่สำเร็จ
+        var isLocalShell = false
+        try {
+          isLocalShell = hasWebUrl && location.protocol === 'https:' && location.hostname === 'localhost' && !location.port && location.origin !== new URL(WEB_URL).origin
+        } catch (e) {}
+        // แสดงเฉพาะโหมดโหลดเว็บจากเซิร์ฟเวอร์ (มี VITE_WEB_URL) — โหมดทดสอบที่แพ็กไฟล์ใน .apk ใช้งานออฟไลน์ได้
+        var offline = hasWebUrl && (!navigator.onLine || isLocalShell)
+        window.__FLEETGO_OFFLINE__ = offline
+        window.__fleetgoRetry = function () {
+          var btn = document.querySelector('#fg-offline button')
+          if (btn) { btn.disabled = true; btn.textContent = 'กำลังเชื่อมต่อ…' }
+          if (isLocalShell) location.replace(WEB_URL)
+          else location.reload()
+        }
+        if (offline) {
+          document.documentElement.classList.add('fg-offline')
+          window.addEventListener('online', window.__fleetgoRetry)
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="fg-offline" role="alert">
+      <div class="mark" aria-hidden="true"></div>
+      <h1>กรุณาเชื่อมต่ออินเทอร์เน็ตเพื่อใช้งาน FleetGo</h1>
+      <p>ตรวจสอบ Wi-Fi หรือข้อมูลมือถือ แล้วแตะลองใหม่อีกครั้ง</p>
+      <button type="button" onclick="window.__fleetgoRetry()">ลองใหม่อีกครั้ง</button>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
