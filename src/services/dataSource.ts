@@ -1,5 +1,5 @@
 import { config } from '../config'
-import { createSeed, SEED_CAR_PHOTOS, stockPhoto, type Seed } from '../data/mockData'
+import { createSeed, LEGACY_BRANCH_IDS, SEED_CAR_BRANCH, SEED_TRIP_DETAILS, SEED_CAR_PHOTOS, seedBranches, stockPhoto, type Seed } from '../data/mockData'
 import { emitChange } from './events'
 
 /**
@@ -29,9 +29,12 @@ const MIGRATION_KEY = 'fleetgo.migrations'
 
 /**
  * Migration ของข้อมูลทดลองที่บันทึกในเครื่องอยู่แล้ว (ไม่ต้องรีเซ็ตข้อมูล)
+ * - branches-v1: เพิ่มตารางสาขา และกำหนดสาขาให้รถชุดเริ่มต้น (รถที่เพิ่มเองยังไม่ระบุสาขา)
+ * - branches-v2: เปลี่ยนเป็นสาขาจริงขององค์กร 7 สาขา ลบสาขาตัวอย่างเดิม และย้ายรถของสาขาที่ลบไปตามค่าเริ่มต้น
+ * - trip-details-v1: เติมตำแหน่ง/รูป/การแจ้งปัญหาให้ทริปตัวอย่างที่คืนรถแล้ว (เฉพาะทริปที่ยังไม่มีข้อมูลตำแหน่ง)
  * - car-photos-v1: ใส่รูปรถตัวอย่างให้รถชุดเริ่มต้นที่ยังไม่มีรูป และปรับสีให้ตรงรูป (ถ้ายังเป็นค่าเดิม)
  */
-const MIGRATIONS = ['car-photos-v1', 'no-buffer-v1']
+const MIGRATIONS = ['car-photos-v1', 'no-buffer-v1', 'branches-v1', 'branches-v2', 'trip-details-v1']
 
 function migrationsDone(): string[] {
   try {
@@ -62,6 +65,36 @@ function migrate(db: Seed): boolean {
   if (!done.includes('no-buffer-v1')) {
     for (const s of db.settings) s.bufferMinutes = 0
     done.push('no-buffer-v1')
+    changed = true
+  }
+  if (!done.includes('branches-v1')) {
+    if (!db.branches?.length) db.branches = seedBranches(new Date().toISOString())
+    for (const car of db.cars) if (car.branchId === undefined) car.branchId = SEED_CAR_BRANCH[car.id] ?? null
+    done.push('branches-v1')
+    changed = true
+  }
+  if (!done.includes('branches-v2')) {
+    const now = new Date().toISOString()
+    const norm = (s: string) => s.trim().toLowerCase()
+    const legacy = new Set(LEGACY_BRANCH_IDS)
+    db.branches = (db.branches ?? []).filter((b) => !legacy.has(b.id))
+    for (const s of seedBranches(now)) {
+      const i = db.branches.findIndex((b) => b.id === s.id)
+      if (i >= 0) db.branches[i] = { ...db.branches[i], code: s.code, name: s.name, address: db.branches[i].address && s.id !== 'br-hq' ? db.branches[i].address : s.address, phone: s.id === 'br-hq' ? '' : db.branches[i].phone }
+      // ข้ามถ้าแอดมินเพิ่มสาขาชื่อ/รหัสเดียวกันไว้เองแล้ว
+      else if (!db.branches.some((b) => norm(b.code) === norm(s.code) || norm(b.name) === norm(s.name))) db.branches.push(s)
+    }
+    const ids = new Set(db.branches.map((b) => b.id))
+    for (const car of db.cars) if (car.branchId && !ids.has(car.branchId)) car.branchId = SEED_CAR_BRANCH[car.id] ?? null
+    done.push('branches-v2')
+    changed = true
+  }
+  if (!done.includes('trip-details-v1')) {
+    for (const b of db.bookings) {
+      const extra = SEED_TRIP_DETAILS[b.id]
+      if (extra && b.status === 'completed' && !b.startGps && !b.endGps) Object.assign(b, extra)
+    }
+    done.push('trip-details-v1')
     changed = true
   }
   if (changed) localStorage.setItem(MIGRATION_KEY, JSON.stringify(done))

@@ -1,13 +1,14 @@
 import { ArrowRight } from 'lucide-react'
 import { useState } from 'react'
-import { Logo } from '../components/AppShell'
 import { errorMessage, useToast } from '../components/Toast'
 import { Button } from '../components/ui'
 import { config } from '../config'
 import { useAuth } from '../context/AuthContext'
 import type { LoginResult } from '../services/authService'
-import { ApkDownloadLink } from '../components/AppDownload'
 import { Link } from '../router'
+
+/** ปกแอป FleetGo MCS (public/brand) */
+const COVER = '/brand/fleetgo-mcs.webp'
 
 function MicrosoftLogo() {
   return (
@@ -41,16 +42,12 @@ export function LoginPage() {
     <div className="grid min-h-dvh bg-white pt-safe pb-safe lg:grid-cols-[1.1fr_1fr]">
       {/* ฝั่งแบรนด์ (คอมพิวเตอร์) */}
       <aside className="relative hidden flex-col justify-between overflow-hidden bg-brand p-12 text-white lg:flex">
-        <div className="flex items-center gap-2">
-          <span className="relative block size-[22px] rounded-[5px] bg-white">
-            <span className="absolute right-[4px] bottom-[4px] size-[7px] rounded-[2px] bg-sun" />
-          </span>
-          <span className="text-[17px] font-semibold tracking-[-0.03em]">fleetgo</span>
-        </div>
+        {/* ปกแอป */}
+        <img src={COVER} alt="FleetGo MCS" width={640} height={576} decoding="async" fetchPriority="high" className="h-auto w-64 drop-shadow-[0_20px_40px_rgba(0,0,0,0.35)] xl:w-72" />
 
         <div>
           <p className="num text-[13px] text-white/40">FLEET · BOOKING · LOGBOOK</p>
-          <h1 className="mt-6 text-[56px] leading-[1.02] font-semibold tracking-[-0.035em] xl:text-[72px]">
+          <h1 className="mt-5 text-[48px] leading-[1.04] font-semibold tracking-[-0.035em] xl:text-[60px]">
             รถองค์กร
             <br />
             จองง่าย
@@ -78,12 +75,14 @@ export function LoginPage() {
       <main className="flex flex-col px-6 py-8 sm:px-12">
         {/* มือถือ/iPad: แถบแบรนด์ด้านบน */}
         <div className="-mx-6 -mt-8 bg-brand px-6 pt-[calc(2rem+env(safe-area-inset-top))] pb-10 text-white sm:-mx-12 sm:px-12 lg:hidden">
-          <Logo onDark />
-          <p className="mt-10 text-[34px] leading-[1.05] font-semibold tracking-[-0.03em]">
-            รถองค์กร จองง่าย
-            <br />
-            <span className="text-sun">คืนครบ</span>
-          </p>
+          <div className="flex items-center gap-4">
+            <img src={COVER} alt="FleetGo MCS" width={640} height={576} decoding="async" fetchPriority="high" className="h-auto w-28 shrink-0 drop-shadow-[0_6px_10px_rgba(0,0,0,0.25)] sm:w-32" />
+            <p className="min-w-0 text-[26px] leading-[1.1] font-semibold tracking-[-0.03em] sm:text-[32px]">
+              รถองค์กร จองง่าย
+              <br />
+              <span className="text-sun">คืนครบ</span>
+            </p>
+          </div>
         </div>
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
           <h2 className="text-[32px] leading-tight font-semibold tracking-[-0.025em]">เข้าสู่ระบบ</h2>
@@ -103,11 +102,9 @@ export function LoginPage() {
               <DemoRow label="จำลองพนักงานใหม่ล็อกอินครั้งแรก (JIT)" hint="สร้างบัญชีอัตโนมัติ สิทธิ์พนักงาน" loading={busy === 'jit'} onClick={() => void run('jit', loginDemoNewEmployee)} />
             </div>
           </div>
-
-          <ApkDownloadLink className="mt-8" />
         </div>
         <p className="text-center text-[11px] text-muted lg:text-left">
-          <span className="num">© FLEETGO</span> ·{' '}
+          <span className="num">© FLEETGO MCS</span> ·{' '}
           <Link to="/privacy" className="underline-offset-2 hover:text-ink hover:underline">
             นโยบายความเป็นส่วนตัว
           </Link>

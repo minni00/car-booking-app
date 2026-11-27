@@ -9,7 +9,7 @@ import { initials } from '../lib/format'
 import { useQuery } from '../lib/useQuery'
 import { Link, navigate } from '../router'
 import { carService } from '../services/carService'
-import { ApkDownloadLink, TestDataReset } from '../components/AppDownload'
+import { TestDataReset } from '../components/AppDownload'
 import { EmailInbox } from '../components/EmailInbox'
 import { deviceService } from '../services/deviceService'
 import { maintenanceService } from '../services/maintenanceService'
@@ -155,8 +155,6 @@ export function ProfilePage() {
             นโยบายความเป็นส่วนตัว (PDPA)
             <ChevronRight className="size-4 text-muted" />
           </Link>
-
-          <ApkDownloadLink />
         </div>
       </div>
 

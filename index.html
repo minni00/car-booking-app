@@ -4,22 +4,24 @@
     <meta charset="UTF-8" />
     <!-- base: './' (สำหรับแอป Android) + base href="/" เพื่อให้รีเฟรชหน้าลึก เช่น /trip/xxx บนเว็บยังโหลดไฟล์ได้ -->
     <base href="/" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico?v=3" sizes="48x48" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=3" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64x64.png?v=3" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#003D7C" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="FleetGo" />
+    <meta name="apple-mobile-web-app-title" content="FleetGo MCS" />
     <meta name="format-detection" content="telephone=no" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png?v=3" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <title>FleetGo — ระบบจองรถองค์กร</title>
+    <title>FleetGo MCS — ระบบจองรถองค์กร</title>
     <!--
       หน้า Fallback เมื่อไม่มีอินเทอร์เน็ต (ใช้ CSS/JS ในไฟล์นี้ทั้งหมด เพื่อให้แสดงได้แม้โหลดอะไรไม่ได้)
       แสดงเมื่อ: เครื่องออฟไลน์ หรือแอป Android (Capacitor) โหลดเว็บจาก server.url ไม่สำเร็จแล้วถอยมาเปิดไฟล์นี้ในเครื่อง (server.errorPath)
@@ -73,7 +75,7 @@
   <body>
     <div id="fg-offline" role="alert">
       <div class="mark" aria-hidden="true"></div>
-      <h1>กรุณาเชื่อมต่ออินเทอร์เน็ตเพื่อใช้งาน FleetGo</h1>
+      <h1>กรุณาเชื่อมต่ออินเทอร์เน็ตเพื่อใช้งาน FleetGo MCS</h1>
       <p>ตรวจสอบ Wi-Fi หรือข้อมูลมือถือ แล้วแตะลองใหม่อีกครั้ง</p>
       <button type="button" onclick="window.__fleetgoRetry()">ลองใหม่อีกครั้ง</button>
     </div>

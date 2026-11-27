@@ -8,7 +8,7 @@ import { useCurrentUser } from '../context/AuthContext'
 import { fmtDateShort, fmtDateTime, fmtRange, fmtTime } from '../lib/date'
 import { cn, fmtBaht, fmtKm } from '../lib/format'
 import { useQuery } from '../lib/useQuery'
-import { Link } from '../router'
+import { Link, useLocation } from '../router'
 import { bookingService, distanceOf } from '../services/bookingService'
 import { carName, carService } from '../services/carService'
 import { TICKET_STATUS_LABEL, ticketService } from '../services/ticketService'
@@ -20,7 +20,9 @@ type Tab = 'queue' | 'history' | 'tickets'
 export function MyBookingsPage() {
   const user = useCurrentUser()
   const toast = useToast()
-  const [tab, setTab] = useState<Tab>('queue')
+  const { search } = useLocation()
+  const initialTab = search.get('tab')
+  const [tab, setTab] = useState<Tab>(initialTab === 'history' || initialTab === 'tickets' ? initialTab : 'queue')
   const [cancelTarget, setCancelTarget] = useState<Booking | null>(null)
   const [cancelling, setCancelling] = useState(false)
 
@@ -224,7 +226,7 @@ function HistoryRow({ booking: b, car, users, userId }: { booking: Booking; car:
 
   return (
     <li>
-      <Link to={`/trip/${b.id}`} className="grid grid-cols-[5rem_1fr_auto] items-start gap-x-3 py-3.5 transition-colors hover:bg-paper/60 md:grid-cols-[7rem_1fr_auto] md:gap-x-6">
+      <Link to={`/trip/${b.id}?from=history`} className="grid grid-cols-[5rem_1fr_auto] items-start gap-x-3 py-3.5 transition-colors hover:bg-paper/60 md:grid-cols-[7rem_1fr_auto] md:gap-x-6">
         <div className={cn(muted && 'opacity-60')}>
           <p className="num text-[15px] leading-[1.5] font-semibold">{fmtTime(b.start)}</p>
           <p className="num text-[12px] leading-[1.5] text-muted">ถึง {fmtTime(b.end)}</p>
@@ -241,6 +243,12 @@ function HistoryRow({ booking: b, car, users, userId }: { booking: Booking; car:
             <StatusPill status={b.status} size="sm" />
             {b.status === 'completed' && distance != null && <span className="num text-[12px] text-muted">{fmtKm(distance)}</span>}
             {proxy && <span className="text-[12px] text-muted">{proxy}</span>}
+            {(b.startIssue || b.endIssue) && (
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-amber-700">
+                <span className="size-1.5 rounded-full bg-amber-500" />
+                แจ้งปัญหา/รอย
+              </span>
+            )}
           </div>
         </div>
         <ChevronRight className="mt-0.5 size-4 text-muted" strokeWidth={1.75} aria-hidden />

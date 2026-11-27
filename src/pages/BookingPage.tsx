@@ -1,17 +1,20 @@
-import { ArrowLeft, CalendarDays, Check, ChevronRight, Fuel, Gauge, MapPin, Navigation, UserRound, Users } from 'lucide-react'
+import { ArrowLeft, Building2, CalendarDays, Check, ChevronRight, Fuel, Gauge, MapPin, Navigation, UserRound, Users } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AvailabilityGrid } from '../components/AvailabilityGrid'
 import { BookingRules } from '../components/BookingRules'
+import { ALL_BRANCHES, BranchSelect } from '../components/BranchSelect'
 import { CarImage } from '../components/CarImage'
 import { LazyMap } from '../components/LazyMap'
 import { errorMessage, useToast } from '../components/Toast'
 import { Button, Card, CardHeader, ErrorText, Field, Input, LinkButton, Loading, Modal, Plate, Segmented, Select, Textarea } from '../components/ui'
 import { useCurrentUser } from '../context/AuthContext'
 import { addDays, addMinutes, combine, fmtDateShort, fmtRange, fmtTime, pad, parseDateKey, toDateKey } from '../lib/date'
+import { useBookingBranch } from '../lib/bookingBranch'
 import { cn, fmtKm } from '../lib/format'
 import { useQuery } from '../lib/useQuery'
 import { Link, navigate, useLocation } from '../router'
 import { bookingService, type BookingInput } from '../services/bookingService'
+import { branchService } from '../services/branchService'
 import { carName, carService } from '../services/carService'
 import { settingsService } from '../services/settingsService'
 import { userService } from '../services/userService'
@@ -36,6 +39,8 @@ export function BookingPage({ carId }: { carId: string }) {
   const [pickupOn, setPickupOn] = useState(false)
   const [pickupPin, setPickupPin] = useState<GeoPoint | null>(null)
   const [carPickerOpen, setCarPickerOpen] = useState(false)
+  /** สาขาในหน้าต่างเปลี่ยนรถ — null = สาขาของรถคันปัจจุบัน */
+  const [pickerBranch, setPickerBranch] = useState<string | null>(null)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [accepted, setAccepted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -43,16 +48,18 @@ export function BookingPage({ carId }: { carId: string }) {
   const initialized = useRef<string | null>(null)
 
   const { data, loading } = useQuery(async () => {
-    const [car, cars, settings, users, editing] = await Promise.all([
+    const [car, cars, settings, users, editing, branches] = await Promise.all([
       carService.get(carId),
       carService.list(),
       settingsService.get(),
       userService.list(),
       editId ? bookingService.get(editId) : Promise.resolve(undefined),
+      branchService.list(),
     ])
     const busy = await bookingService.busyBlocks(carId, dateKey, editId ?? undefined)
-    return { car, cars, settings, users, editing, busy }
+    return { car, cars, settings, users, editing, busy, branches }
   }, [carId, dateKey, editId])
+  const [, setBookingBranch] = useBookingBranch(data?.branches)
 
   // โหมดแก้ไข: เติมค่าจากการจองเดิมครั้งเดียว
   useEffect(() => {
@@ -98,6 +105,16 @@ export function BookingPage({ carId }: { carId: string }) {
 
   const { car, cars, users, busy, editing } = data
   const otherAvailableCars = cars.filter((candidate) => candidate.id !== car.id && candidate.status === 'available')
+  const branches = data.branches
+  const branchName = (id?: string | null) => branches.find((b) => b.id === id)?.name
+  const carBranch = branchName(car.branchId)
+  // หน้าต่างเปลี่ยนรถ: เริ่มที่สาขาของรถคันปัจจุบัน
+  const pickerBranchId = pickerBranch ?? (car.branchId && carBranch ? car.branchId : ALL_BRANCHES)
+  const pickerCars = pickerBranchId === ALL_BRANCHES ? otherAvailableCars : otherAvailableCars.filter((c) => c.branchId === pickerBranchId)
+  const changePickerBranch = (id: string) => {
+    setPickerBranch(id)
+    setBookingBranch(id)
+  }
   const cfg = data.settings
   const selStart = start ? combine(dateKey, start) : null
   const selEnd = end ? combine(dateKey, end) : null
@@ -186,6 +203,12 @@ export function BookingPage({ carId }: { carId: string }) {
                 <div className="min-w-0">
                   <p className="font-display font-semibold sm:text-lg">{carName(car)}</p>
                   <p className="text-sm text-muted">{car.color}</p>
+                  {carBranch && (
+                    <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-md bg-brand/[0.07] px-2 py-1 text-[12px] font-medium text-brand">
+                      <Building2 className="size-3.5 shrink-0" strokeWidth={1.8} />
+                      {carBranch}
+                    </p>
+                  )}
                 </div>
                 <Plate plate={car.plate} province={car.province} size="sm" />
               </div>
@@ -196,7 +219,7 @@ export function BookingPage({ carId }: { carId: string }) {
                 <span className="flex items-center gap-1.5"><MapPin className="size-4 text-muted" />{car.parkingSpot}</span>
               </div>
               <div className="mt-3 flex justify-end">
-                <Button variant="secondary" size="sm" onClick={() => setCarPickerOpen(true)}>เปลี่ยนรถ</Button>
+                <Button variant="secondary" size="sm" onClick={() => { setPickerBranch(null); setCarPickerOpen(true) }}>เปลี่ยนรถ</Button>
               </div>
             </div>
           </Card>
@@ -333,10 +356,11 @@ export function BookingPage({ carId }: { carId: string }) {
       </div>
 
       <Modal open={carPickerOpen} onClose={() => setCarPickerOpen(false)} title="เลือกรถคันใหม่" size="lg">
-        {otherAvailableCars.length > 0 ? (
+        <BranchSelect branches={branches} value={pickerBranchId} onChange={changePickerBranch} className="mb-3" />
+        {pickerCars.length > 0 ? (
           <div className="space-y-2">
             <p className="mb-3 text-sm text-muted">วัน เวลา และรายละเอียดที่กรอกไว้จะยังคงอยู่</p>
-            {otherAvailableCars.map((candidate) => (
+            {pickerCars.map((candidate) => (
               <button
                 key={candidate.id}
                 type="button"
@@ -348,6 +372,7 @@ export function BookingPage({ carId }: { carId: string }) {
                   <span className="block truncate font-semibold">{carName(candidate)}</span>
                   <span className="mt-0.5 block text-sm text-muted">
                     <span className="num">{candidate.plate}</span> · {candidate.fuel} · {candidate.seats} ที่นั่ง
+                    {pickerBranchId === ALL_BRANCHES && branchName(candidate.branchId) && <span className="block truncate text-[13px]">{branchName(candidate.branchId)}</span>}
                   </span>
                 </span>
                 <ChevronRight className="size-5 shrink-0 text-muted" />
@@ -355,7 +380,7 @@ export function BookingPage({ carId }: { carId: string }) {
             ))}
           </div>
         ) : (
-          <p className="py-6 text-center text-sm text-muted">ไม่มีรถคันอื่นที่พร้อมให้จอง</p>
+          <p className="py-6 text-center text-sm text-muted">{pickerBranchId === ALL_BRANCHES ? 'ไม่มีรถคันอื่นที่พร้อมให้จอง' : 'สาขานี้ไม่มีรถคันอื่นที่พร้อมให้จอง ลองเลือกสาขาอื่น'}</p>
         )}
       </Modal>
 
@@ -386,6 +411,7 @@ export function BookingPage({ carId }: { carId: string }) {
                 <SummaryRow label="วัตถุประสงค์" value={purpose} />
                 <SummaryRow label="ผู้โดยสาร" value={`${passengers} คน`} />
                 <SummaryRow label="ปลายทาง" value={destOn && destination ? destination.label ?? 'ปักหมุดแล้ว' : 'ไม่ระบุ'} />
+                {carBranch && <SummaryRow label="สาขา" value={carBranch} />}
                 <SummaryRow label="จุดจอด / กุญแจ" value={`${car.parkingSpot} · ${car.keyLocation}`} />
               </dl>
             </div>

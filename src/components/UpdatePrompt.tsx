@@ -43,7 +43,7 @@ export function UpdatePrompt() {
     <div role="status" className="fixed inset-x-0 top-[calc(max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px))+0.75rem)] z-[55] flex justify-center px-4 md:top-auto md:bottom-6">
       <div className="flex w-full max-w-md items-center gap-3 rounded-lg bg-ink py-2 pr-2 pl-4 text-sm text-white">
         <RefreshCw className="size-4 shrink-0 text-sun" strokeWidth={2} />
-        <span className="min-w-0 flex-1 leading-snug">FleetGo มีเวอร์ชันใหม่</span>
+        <span className="min-w-0 flex-1 leading-snug">FleetGo MCS มีเวอร์ชันใหม่</span>
         <button type="button" onClick={() => setShow(false)} className="shrink-0 rounded-md px-2.5 py-1.5 text-white/70 transition-colors hover:text-white">
           ภายหลัง
         </button>

@@ -41,6 +41,17 @@ export interface GeoPoint {
   label?: string
 }
 
+/** สาขา/สถานที่ตั้งรถ */
+export interface Branch {
+  id: string
+  /** รหัสสั้น เช่น HQ, BN */
+  code: string
+  name: string
+  address: string
+  phone: string
+  createdAt: string
+}
+
 export type CarStatus = 'available' | 'maintenance'
 export type FuelType = 'เบนซิน' | 'ดีเซล' | 'ไฮบริด' | 'ไฟฟ้า'
 
@@ -71,6 +82,8 @@ export interface Car {
   insurance: Insurance
   actExpiry: string // พ.ร.บ. YYYY-MM-DD
   lastServiceMileage: number
+  /** สาขาที่รถสังกัด — null/ไม่มี = ยังไม่ระบุสาขา */
+  branchId?: string | null
 }
 
 export type BookingStatus = 'upcoming' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'

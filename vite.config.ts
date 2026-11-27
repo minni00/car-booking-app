@@ -32,8 +32,8 @@ export default defineConfig({
       injectRegister: false,
       manifest: {
         id: '/',
-        name: 'FleetGo — ระบบจองรถองค์กร',
-        short_name: 'FleetGo',
+        name: 'FleetGo MCS — ระบบจองรถองค์กร',
+        short_name: 'FleetGo MCS',
         description: 'จองรถส่วนกลางขององค์กร เริ่มใช้รถ และคืนรถ',
         lang: 'th',
         start_url: '/',
@@ -43,14 +43,14 @@ export default defineConfig({
         background_color: '#003D7C',
         theme_color: '#003D7C',
         icons: [
-          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/pwa-192x192.png?v=3', sizes: '192x192', type: 'image/png' },
+          { src: '/pwa-512x512.png?v=3', sizes: '512x512', type: 'image/png' },
+          { src: '/maskable-icon-512x512.png?v=3', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
         // เก็บเฉพาะไฟล์ของแอป ไม่เก็บไฟล์ APK (5 MB) และรูปรถ (โหลดเมื่อเปิดดู)
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
         globIgnores: ['downloads/**', 'cars/**'],
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/downloads\//, /^\/api\//],

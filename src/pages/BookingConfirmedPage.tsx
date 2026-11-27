@@ -6,6 +6,7 @@ import { fmtDateShort, fmtTime } from '../lib/date'
 import { downloadICS } from '../lib/download'
 import { useQuery } from '../lib/useQuery'
 import { bookingService } from '../services/bookingService'
+import { branchService } from '../services/branchService'
 import { carName, carService } from '../services/carService'
 import { settingsService } from '../services/settingsService'
 import { userService } from '../services/userService'
@@ -14,8 +15,8 @@ export function BookingConfirmedPage({ bookingId }: { bookingId: string }) {
   const { data, loading } = useQuery(async () => {
     const booking = await bookingService.get(bookingId)
     if (!booking) return null
-    const [car, driver, settings] = await Promise.all([carService.get(booking.carId), userService.get(booking.driverId), settingsService.get()])
-    return { booking, car, driver, settings }
+    const [car, driver, settings, branches] = await Promise.all([carService.get(booking.carId), userService.get(booking.driverId), settingsService.get(), branchService.list()])
+    return { booking, car, driver, settings, branch: branches.find((b) => b.id === car?.branchId) ?? null }
   }, [bookingId])
 
   if (loading) return <Loading />
@@ -43,6 +44,7 @@ export function BookingConfirmedPage({ bookingId }: { bookingId: string }) {
           <div className="divide-y divide-line border-y border-line">
             <InfoRow label="เลขที่การจอง" value={<span className="num">{booking.id.toUpperCase()}</span>} />
             <InfoRow label="ผู้ขับขี่" value={driver?.name ?? '-'} />
+            {data.branch && <InfoRow label="สาขา" value={data.branch.name} />}
             <InfoRow label="จุดจอด" value={car.parkingSpot} />
             <InfoRow label="รับกุญแจ" value={car.keyLocation} />
             <InfoRow label="ปลายทาง" value={booking.destination?.label ?? 'ไม่ระบุ'} />

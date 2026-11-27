@@ -31,7 +31,7 @@ DataSource (src/services/dataSource.ts)           ← จุดสลับจ�
 ### สลับไปใช้ REST API + Azure
 
 1. ตั้ง `VITE_DATA_SOURCE=api` และ `VITE_API_BASE_URL` ใน `.env`
-2. API ต้องมี collection: `users`, `devices`, `cars`, `bookings`, `tickets`, `maintenance`, `settings` (โครงสร้างตาม `src/types.ts`)
+2. API ต้องมี collection: `users`, `branches`, `devices`, `cars`, `bookings`, `tickets`, `maintenance`, `settings` (โครงสร้างตาม `src/types.ts`)
 3. Bearer token มาจาก Entra ID อัตโนมัติ เปลี่ยน scope ได้ที่ `API_SCOPES` ใน `src/services/authService.ts`
 4. ไฟล์แนบ: แก้ `fileService.upload()` ใน `src/services/fileService.ts` ให้อัปโหลดขึ้น Azure Blob Storage ผ่าน SAS URL แล้วเก็บ URL แทน Data URL
 5. ควรย้าย business logic ที่สำคัญ (ตรวจคิวชน, No-Show, จับคู่ใบสั่ง) ไปทำซ้ำฝั่ง server ด้วย

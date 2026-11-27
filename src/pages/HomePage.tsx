@@ -1,4 +1,4 @@
-import { CalendarPlus, ChevronRight, Search, Users } from 'lucide-react'
+import { CalendarPlus, ChevronRight, MapPin, Search, Users } from 'lucide-react'
 import { freeHours } from '../components/AvailabilityGrid'
 import { BoardingPass } from '../components/BoardingPass'
 import { CarImage } from '../components/CarImage'
@@ -6,9 +6,12 @@ import { Loading } from '../components/ui'
 import { useCurrentUser } from '../context/AuthContext'
 import { fmtTime, parseDateKey, toDateKey } from '../lib/date'
 import { cn } from '../lib/format'
+import { ALL_BRANCHES } from '../components/BranchSelect'
+import { useBookingBranch } from '../lib/bookingBranch'
 import { useQuery } from '../lib/useQuery'
 import { Link } from '../router'
 import { bookingService } from '../services/bookingService'
+import { branchService } from '../services/branchService'
 import { carName, carService } from '../services/carService'
 import { settingsService } from '../services/settingsService'
 import { userService } from '../services/userService'
@@ -23,11 +26,12 @@ export function HomePage() {
   const user = useCurrentUser()
   const { data, loading } = useQuery(async () => {
     const today = toDateKey()
-    const [cars, settings, mine, users] = await Promise.all([
+    const [cars, settings, mine, users, branches] = await Promise.all([
       carService.list(),
       settingsService.get(),
       bookingService.listForUser(user.id),
       userService.list(),
+      branchService.list(),
     ])
     const all = await bookingService.list()
     const next = all.find((b) => b.status === 'in_progress') ?? all.find((b) => b.status === 'upcoming')
@@ -38,15 +42,20 @@ export function HomePage() {
       cars.filter((c) => c.status === 'available').map(async (car) => ({ car, hours: freeHours(today, settings.dayStartHour, settings.dayEndHour, await bookingService.busyBlocks(car.id, today)) })),
     )
     availability.sort((a, b) => b.hours - a.hours)
-    return { cars, next, mine, users, inUseIds, availability, span, today: new Date() }
+    return { cars, next, mine, users, inUseIds, availability, span, today: new Date(), branches }
   }, [user.id])
+  // สาขาที่เลือกไว้ตอนจอง (หน้าเลือกรถ) — ใช้กรองรถว่าง
+  const [branchId] = useBookingBranch(data?.branches)
 
   if (loading || !data) return <Loading />
 
-  const { cars, next, mine, users, inUseIds, availability, span, today } = data
+  const { cars, next, mine, users, inUseIds, span, today } = data
   const nextCar = next && cars.find((c) => c.id === next.carId)
-  const availableNow = cars.filter((c) => c.status === 'available' && !inUseIds.has(c.id)).length
-  const maintenance = cars.filter((c) => c.status === 'maintenance').length
+  const branch = branchId === ALL_BRANCHES ? null : data.branches.find((b) => b.id === branchId) ?? null
+  const branchCars = branch ? cars.filter((c) => c.branchId === branch.id) : cars
+  const availability = branch ? data.availability.filter((a) => a.car.branchId === branch.id) : data.availability
+  const availableNow = branchCars.filter((c) => c.status === 'available' && !inUseIds.has(c.id)).length
+  const maintenance = branchCars.filter((c) => c.status === 'maintenance').length
   const laterQueue = mine.filter((b) => b.status === 'upcoming' && b.id !== next?.id).slice(0, 3)
   const firstName = user.name.split(' ')[0]
 
@@ -73,7 +82,7 @@ export function HomePage() {
         <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-[13px] text-muted">
           <span className="flex items-center gap-1.5">
             <span className="size-2 rounded-full bg-emerald-500" />
-            ว่างตอนนี้ <b className="num font-semibold text-ink">{availableNow}</b> จาก {cars.length} คัน
+            ว่างตอนนี้ <b className="num font-semibold text-ink">{availableNow}</b> จาก {branchCars.length} คัน
           </span>
           {maintenance > 0 && (
             <span className="flex items-center gap-1.5">
@@ -81,6 +90,10 @@ export function HomePage() {
               ซ่อมบำรุง <b className="num font-semibold text-ink">{maintenance}</b>
             </span>
           )}
+          <Link to="/fleet" className="flex items-center gap-1 font-medium text-brand">
+            <MapPin className="size-3.5" strokeWidth={1.8} />
+            {branch?.name ?? 'ทุกสาขา'}
+          </Link>
         </p>
 
         {/* ทริปถัดไป */}

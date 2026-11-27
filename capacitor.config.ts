@@ -33,7 +33,7 @@ const useRemote = webUrl !== WEB_URL_PLACEHOLDER && /^https:\/\/[\w.-]+/.test(we
 
 const config: CapacitorConfig = {
   appId: 'com.company.fleetgo',
-  appName: 'FleetGo',
+  appName: 'FleetGo MCS',
   webDir: 'dist',
   server: useRemote
     ? {

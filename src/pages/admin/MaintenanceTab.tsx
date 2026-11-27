@@ -11,11 +11,13 @@ import { carService } from '../../services/carService'
 import { MAINTENANCE_TYPE_LABEL, maintenanceService, type MaintenanceAlert, type MaintenanceInput } from '../../services/maintenanceService'
 import { settingsService } from '../../services/settingsService'
 import type { Car, MaintenanceRecord, MaintenanceType } from '../../types'
+import { useBranchScope } from './branchScope'
 import { DeleteButton, ExportPreviewModal, MobileCard, MobileMeta, Table, Td, Toolbar } from './shared'
 
 type Editing = { record: MaintenanceRecord | null; preset?: Partial<MaintenanceInput> }
 
 export function MaintenanceTab() {
+  const { scopeCars, scopeByCar } = useBranchScope()
   const toast = useToast()
   const [editing, setEditing] = useState<Editing | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
@@ -25,7 +27,10 @@ export function MaintenanceTab() {
   })
 
   if (loading || !data) return <Loading />
-  const { records, cars, settings, alerts } = data
+  const { settings } = data
+  const cars = scopeCars(data.cars)
+  const records = scopeByCar(data.records, cars)
+  const alerts = scopeByCar(data.alerts, cars)
   const carOf = (id: string) => cars.find((c) => c.id === id)
   const year = new Date().getFullYear()
   const yearCost = records.filter((r) => r.date.startsWith(String(year))).reduce((s, r) => s + r.cost, 0)

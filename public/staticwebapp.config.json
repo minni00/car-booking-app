@@ -9,6 +9,7 @@
       "/assets/*",
       "/cars/*",
       "/downloads/*",
+      "/brand/*",
       "/*.svg",
       "/*.png",
       "/*.ico",

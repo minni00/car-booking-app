@@ -189,6 +189,7 @@ export const bookingService = {
     if (!Number.isFinite(input.mileage) || input.mileage < car.mileage) {
       throw new Error(`เลขไมล์เริ่มต้นต้องไม่น้อยกว่าเลขไมล์ล่าสุด (${car.mileage.toLocaleString('th-TH')} กม.)`)
     }
+    if (!input.gps) throw new Error('กรุณากดบันทึกตำแหน่งจุดขึ้นรถ')
     validateTripEvidence(input)
     return db.update('bookings', id, {
       status: 'in_progress',
@@ -236,6 +237,7 @@ export const bookingService = {
     }
     if (!input.parkingSpot.trim() || !input.keyLocation.trim()) throw new Error('กรุณาระบุชั้น/เสาจอด และจุดคืนกุญแจ')
     if (input.fuelMethod !== 'none' && !(input.fuelAmount && input.fuelAmount > 0)) throw new Error('กรุณาระบุยอดเติมน้ำมัน')
+    if (!input.gps) throw new Error('กรุณากดบันทึกตำแหน่งจุดคืนรถ')
     validateTripEvidence(input)
 
     const updated = await db.update('bookings', id, {

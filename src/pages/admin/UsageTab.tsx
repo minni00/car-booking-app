@@ -1,7 +1,8 @@
-import { FileSpreadsheet } from 'lucide-react'
+import { FileSpreadsheet, ImageIcon, MapPin } from 'lucide-react'
 import { useState } from 'react'
 import { BOOKING_STATUS_LABEL, BookingStatusBadge } from '../../components/StatusBadge'
-import { Button, Field, Input, Loading, Plate, Select, Stat } from '../../components/ui'
+import { TripDetails } from '../../components/TripDetails'
+import { Button, Field, Input, Loading, Modal, Plate, Select, Stat } from '../../components/ui'
 import { addDays, fmtDateTime, fmtDuration, parseDateKey, toDateKey } from '../../lib/date'
 import { downloadCSV } from '../../lib/download'
 import { fmtBaht, fmtKm } from '../../lib/format'
@@ -9,7 +10,8 @@ import { useQuery } from '../../lib/useQuery'
 import { bookingService } from '../../services/bookingService'
 import { carService } from '../../services/carService'
 import { userService } from '../../services/userService'
-import type { Booking, FuelMethod } from '../../types'
+import type { Booking, Car, FuelMethod, User } from '../../types'
+import { useBranchScope } from './branchScope'
 import { SavingsInsights } from './SavingsInsights'
 import { ExportPreviewModal, MobileCard, MobileMeta, Table, Td } from './shared'
 
@@ -23,6 +25,23 @@ const hasIssue = (b: Booking) => !!(b.startIssue || b.endIssue)
 
 const IssueTag = () => <span className="inline-flex items-center gap-1.5 text-[12px] font-medium whitespace-nowrap text-amber-700"><span className="size-1.5 rounded-full bg-amber-500" />แจ้งปัญหา/รอย</span>
 
+/** จำนวนจุดตำแหน่ง / รูปถ่าย ที่บันทึกในทริป */
+const pointCount = (b: Booking) => [b.pickupPin, b.startGps, b.destination, b.endGps].filter(Boolean).length
+const photoCount = (b: Booking) =>
+  [b.startOdometerPhoto, b.endOdometerPhoto, b.fuelSlip].filter(Boolean).length + (b.startPhotos?.length ?? 0) + (b.endPhotos?.length ?? 0) + (b.startIssue?.photos.length ?? 0) + (b.endIssue?.photos.length ?? 0)
+
+/** ตัวนับตำแหน่ง/รูป (บอกว่าทริปนี้มีหลักฐานอะไรบ้าง) */
+function TripCounts({ b }: { b: Booking }) {
+  const pts = pointCount(b), pics = photoCount(b)
+  if (!pts && !pics) return null
+  return (
+    <span className="inline-flex items-center gap-2.5 text-[12px] whitespace-nowrap text-muted">
+      {pts > 0 && <span className="inline-flex items-center gap-1"><MapPin className="size-3.5" strokeWidth={1.8} /><span className="num">{pts}</span> จุด</span>}
+      {pics > 0 && <span className="inline-flex items-center gap-1"><ImageIcon className="size-3.5" strokeWidth={1.8} /><span className="num">{pics}</span> รูป</span>}
+    </span>
+  )
+}
+
 /** ระยะทางของทริป (กม.) ถ้ามีเลขไมล์ครบ */
 const distanceOf = (b: Booking) => (b.startMileage != null && b.endMileage != null ? Math.max(0, b.endMileage - b.startMileage) : null)
 
@@ -31,9 +50,11 @@ export function UsageTab() {
   const today = toDateKey()
   const [from, setFrom] = useState(() => toDateKey(addDays(new Date(), -30)))
   const [to, setTo] = useState(today)
-  const [carId, setCarId] = useState('all')
+  const [pickedCarId, setCarId] = useState('all')
+  const { all, current, scopeCars, scopeByCar } = useBranchScope()
   const [status, setStatus] = useState<'all' | Booking['status']>('all')
   const [exportOpen, setExportOpen] = useState(false)
+  const [detail, setDetail] = useState<Booking | null>(null)
 
   const { data, loading } = useQuery(async () => {
     const [bookings, cars, users] = await Promise.all([bookingService.list(), carService.list(), userService.list()])
@@ -41,7 +62,11 @@ export function UsageTab() {
   })
 
   if (loading || !data) return <Loading />
-  const { bookings, cars, users } = data
+  const { users } = data
+  const cars = scopeCars(data.cars)
+  const bookings = scopeByCar(data.bookings, cars)
+  // รถที่เลือกไว้ไม่อยู่ในสาขาปัจจุบัน → ทุกคัน
+  const carId = cars.some((c) => c.id === pickedCarId) ? pickedCarId : 'all'
   const carOf = (id: string) => cars.find((c) => c.id === id)
   const userOf = (id: string) => users.find((u) => u.id === id)
 
@@ -59,7 +84,7 @@ export function UsageTab() {
   const totalFuel = rows.reduce((s, b) => s + (b.fuelAmount ?? 0), 0)
   const done = rows.filter((b) => b.status === 'completed').length
 
-  const exportFilename = `fleetgo-usage-${from}_${to}.csv`
+  const exportFilename = `fleetgo-usage-${all ? '' : `${current?.code ?? ''}-`}${from}_${to}.csv`
   const exportHeaders = ['เลขที่จอง', 'สถานะ', 'ทะเบียนรถ', 'ยี่ห้อ/รุ่น', 'ผู้ขับขี่', 'อีเมลผู้ขับ', 'แผนก', 'ผู้จอง', 'วัตถุประสงค์', 'ผู้โดยสาร', 'ปลายทาง', 'เวลาจอง (เริ่ม)', 'เวลาจอง (สิ้นสุด)', 'เริ่มใช้จริง', 'คืนรถจริง', 'ระยะเวลาใช้จริง', 'ไมล์เริ่ม', 'ไมล์คืน', 'ระยะทาง (กม.)', 'การเติมน้ำมัน', 'ค่าน้ำมัน (บาท)', 'จุดจอดตอนคืน', 'จุดเก็บกุญแจ', 'ขยายเวลา (ครั้ง)', 'รูปเลขไมล์ (เริ่ม)', 'รูปเลขไมล์ (คืน)', 'ปัญหา/รอย ตอนเริ่ม', 'ปัญหา/รอย ตอนคืน', 'จำนวนรูปปัญหา']
   const exportRows = rows.map((b) => {
     const car = carOf(b.carId)
@@ -144,7 +169,7 @@ export function UsageTab() {
       </div>
 
       <Table
-        head={['เวลาใช้รถ', 'รถ', 'ผู้ขับ / วัตถุประสงค์', 'ไมล์ (เริ่ม → คืน)', 'ระยะทาง', 'น้ำมัน', 'สถานะ']}
+        head={['เวลาใช้รถ', 'รถ', 'ผู้ขับ / วัตถุประสงค์', 'ไมล์ (เริ่ม → คืน)', 'ระยะทาง', 'น้ำมัน', 'สถานะ', '']}
         empty={!rows.length}
         mobile={rows.map((b) => {
           const car = carOf(b.carId)
@@ -162,6 +187,7 @@ export function UsageTab() {
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 {car && <Plate plate={car.plate} size="sm" />}
                 {hasIssue(b) && <IssueTag />}
+                <TripCounts b={b} />
               </div>
               {hasIssue(b) && <p className="mt-2 text-sm text-amber-800">{[b.startIssue?.note, b.endIssue?.note].filter(Boolean).join(' · ')}</p>}
               <MobileMeta
@@ -172,6 +198,9 @@ export function UsageTab() {
                   ['น้ำมัน', b.fuelMethod ? `${FUEL_LABEL[b.fuelMethod]}${b.fuelAmount ? ` · ${fmtBaht(b.fuelAmount)}` : ''}` : '—'],
                 ]}
               />
+              <Button size="sm" variant="secondary" block className="mt-4" onClick={() => setDetail(b)}>
+                ดูรายละเอียด · ตำแหน่ง · รูป
+              </Button>
             </MobileCard>
           )
         })}
@@ -187,16 +216,23 @@ export function UsageTab() {
               <Td className="min-w-[200px]">
                 <p className="font-medium">{driver?.name ?? '—'}</p>
                 <p className="line-clamp-2 text-xs text-muted">{b.purpose}</p>
+                <div className="mt-1"><TripCounts b={b} /></div>
                 {hasIssue(b) && <p className="mt-1 line-clamp-2 text-xs text-amber-800" title={[b.startIssue?.note, b.endIssue?.note].filter(Boolean).join(' · ')}><IssueTag /> {[b.startIssue?.note, b.endIssue?.note].filter(Boolean).join(' · ')}</p>}
               </Td>
               <Td className="num whitespace-nowrap">{b.startMileage != null ? `${b.startMileage.toLocaleString('th-TH')} → ${b.endMileage?.toLocaleString('th-TH') ?? '…'}` : '—'}</Td>
               <Td className="num whitespace-nowrap">{km != null ? fmtKm(km) : '—'}</Td>
               <Td className="whitespace-nowrap">{b.fuelMethod ? <>{FUEL_LABEL[b.fuelMethod]}{b.fuelAmount ? <span className="block text-xs text-muted">{fmtBaht(b.fuelAmount)}</span> : null}</> : '—'}</Td>
               <Td className="whitespace-nowrap"><BookingStatusBadge status={b.status} /></Td>
+              <Td className="w-px pl-2 text-right whitespace-nowrap">
+                <Button size="sm" variant="secondary" onClick={() => setDetail(b)}>รายละเอียด</Button>
+              </Td>
             </tr>
           )
         })}
       </Table>
+      <Modal open={!!detail} onClose={() => setDetail(null)} title="รายละเอียดการใช้รถ" size="lg">
+        {detail && <UsageDetail booking={detail} car={carOf(detail.carId)} driver={userOf(detail.driverId)} usedTime={usedTime(detail)} />}
+      </Modal>
       <ExportPreviewModal
         open={exportOpen}
         onClose={() => setExportOpen(false)}
@@ -205,6 +241,30 @@ export function UsageTab() {
         rows={exportRows}
         onConfirm={confirmExport}
       />
+    </div>
+  )
+}
+
+/** รายละเอียดการใช้รถ 1 ทริป (ในหน้าต่าง) */
+function UsageDetail({ booking: b, car, driver, usedTime }: { booking: Booking; car?: Car; driver?: User; usedTime: string }) {
+  const km = distanceOf(b)
+  const meta = [car ? `${car.brand} ${car.model}` : '', km != null ? fmtKm(km) : '', b.fuelMethod ? `น้ำมัน ${FUEL_LABEL[b.fuelMethod]}${b.fuelAmount ? ` ${fmtBaht(b.fuelAmount)}` : ''}` : ''].filter(Boolean).join(' · ')
+  return (
+    <div>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-line pb-4">
+        <div className="min-w-0">
+          <p className="font-semibold break-words">
+            {driver?.name ?? '—'} <span className="font-normal text-muted">· {b.purpose}</span>
+          </p>
+          <p className="mt-0.5 text-[13px] text-muted">{usedTime}</p>
+          {meta && <p className="mt-0.5 text-[13px] text-muted">{meta}</p>}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {car && <Plate plate={car.plate} size="sm" />}
+          <BookingStatusBadge status={b.status} />
+        </div>
+      </div>
+      <TripDetails booking={b} />
     </div>
   )
 }

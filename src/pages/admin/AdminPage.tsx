@@ -1,8 +1,10 @@
-import { CarFront, ClipboardList, Receipt, Settings2, Users, Wrench, type LucideIcon } from 'lucide-react'
+import { Building2, CarFront, ClipboardList, Receipt, Settings2, Users, Wrench, type LucideIcon } from 'lucide-react'
 import { LinkButton } from '../../components/ui'
 import { useAuth } from '../../context/AuthContext'
 import { cn } from '../../lib/format'
 import { navigate, useLocation } from '../../router'
+import { BranchesTab } from './BranchesTab'
+import { BranchPicker, BranchScopeProvider } from './branchScope'
 import { CarsTab } from './CarsTab'
 import { MaintenanceTab } from './MaintenanceTab'
 import { SettingsTab } from './SettingsTab'
@@ -16,8 +18,12 @@ const TABS: Array<{ key: string; label: string; short: string; icon: LucideIcon 
   { key: 'tickets', label: 'ใบสั่ง & Export Excel', short: 'ใบสั่ง', icon: Receipt },
   { key: 'users', label: 'รายชื่อ & สิทธิ์แอดมิน', short: 'รายชื่อ', icon: Users },
   { key: 'maintenance', label: 'ซ่อมบำรุง & พ.ร.บ.', short: 'ซ่อม', icon: Wrench },
+  { key: 'branches', label: 'สาขา', short: 'สาขา', icon: Building2 },
   { key: 'settings', label: 'ตั้งค่า Buffer / กติกา', short: 'ตั้งค่า', icon: Settings2 },
 ]
+
+/** แท็บที่กรองข้อมูลตามสาขาที่เลือก */
+const BRANCH_SCOPED = new Set(['cars', 'usage', 'tickets', 'maintenance'])
 
 /** Admin Console — route /admin เฉพาะ role === "admin" */
 export default function AdminPage() {
@@ -38,15 +44,18 @@ export default function AdminPage() {
   }
 
   return (
-    <div>
+    <BranchScopeProvider>
       {/* หัวข้อ: มือถือเล็กลง (24px) / iPad+ ใช้ขนาดเดียวกับ PageHeader */}
-      <header className="mb-4 md:mb-8">
+      <header className="mb-4 flex flex-col gap-3 md:mb-8 md:flex-row md:items-end md:justify-between md:gap-6">
+        <div className="min-w-0">
         <h1 className="text-[24px] leading-tight font-semibold tracking-[-0.02em] md:text-[44px] md:leading-[1.1] md:tracking-[-0.025em]">Admin Console</h1>
-        <p className="mt-1 text-[14px] text-muted md:mt-2 md:text-[15px]">จัดการรถ ใบสั่ง ผู้ใช้ ซ่อมบำรุง และกติกาการจอง</p>
+        <p className="mt-1 text-[14px] text-muted md:mt-2 md:text-[15px]">จัดการรถ สาขา ใบสั่ง ผู้ใช้ ซ่อมบำรุง และกติกาการจอง</p>
+        </div>
+        {BRANCH_SCOPED.has(tab) && <BranchPicker className="w-full md:w-64 md:shrink-0" />}
       </header>
 
-      {/* มือถือ: แท็บไอคอน + ชื่อสั้น 6 ช่องเท่ากัน */}
-      <nav className="-mx-4 mb-5 grid grid-cols-6 gap-0.5 border-b border-line px-2 md:hidden" aria-label="เมนูแอดมิน">
+      {/* มือถือ: แท็บไอคอน + ชื่อสั้น 7 ช่องเท่ากัน */}
+      <nav className="-mx-4 mb-5 grid grid-cols-7 gap-0 border-b border-line px-2 md:hidden" aria-label="เมนูแอดมิน">
         {TABS.map((t) => {
           const active = tab === t.key
           return (
@@ -88,7 +97,8 @@ export default function AdminPage() {
       {tab === 'tickets' && <TicketsTab />}
       {tab === 'users' && <UsersTab />}
       {tab === 'maintenance' && <MaintenanceTab />}
+      {tab === 'branches' && <BranchesTab />}
       {tab === 'settings' && <SettingsTab />}
-    </div>
+    </BranchScopeProvider>
   )
 }

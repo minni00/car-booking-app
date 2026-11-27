@@ -20,11 +20,11 @@ const NAV: NavItem[] = [
 
 export function Logo({ onDark = false }: { onDark?: boolean }) {
   return (
-    <Link to="/" className="flex items-center gap-2" aria-label="FleetGo หน้าแรก">
-      <span className={cn('relative block size-[26px] rounded-[7px]', onDark ? 'bg-white' : 'bg-brand')}>
-        <span className="absolute right-[4px] bottom-[4px] size-[8px] rounded-full bg-sun" />
+    <Link to="/" className="flex items-center gap-2" aria-label="FleetGo MCS หน้าแรก">
+      <img src="/brand/logo-mark.png" alt="" width={96} height={96} className={cn('block size-8 shrink-0 rounded-[8px]')} />
+      <span className={cn('text-[18px] font-semibold tracking-[-0.03em]', onDark ? 'text-white' : 'text-brand')}>
+        fleetgo<span className={cn('ml-1.5 text-[13px] font-semibold tracking-[0.04em]', onDark ? 'text-sun' : 'text-brand/60')}>MCS</span>
       </span>
-      <span className={cn('text-[18px] font-semibold tracking-[-0.03em]', onDark ? 'text-white' : 'text-brand')}>fleetgo</span>
     </Link>
   )
 }

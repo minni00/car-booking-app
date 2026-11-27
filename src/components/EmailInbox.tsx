@@ -31,7 +31,7 @@ export function EmailInbox({ email }: { email: string }) {
               <button type="button" onClick={() => setOpen(m)} className="flex w-full items-start gap-3 py-3 text-left transition-colors hover:bg-paper/60">
                 <MailCheck className="mt-0.5 size-4 shrink-0 text-brand" strokeWidth={1.75} />
                 <span className="min-w-0 flex-1">
-                  <span className="line-clamp-2 text-sm leading-snug font-medium">{m.subject.replace('[FleetGo] ', '')}</span>
+                  <span className="line-clamp-2 text-sm leading-snug font-medium">{m.subject.replace(/^[FleetGo( MCS)?] /, '')}</span>
                   <span className="mt-0.5 block text-[12px] text-muted">
                     <span className="num">{fmtDateTime(m.createdAt)}</span> · ถึง {m.to.join(', ')}
                   </span>

@@ -12,11 +12,13 @@ import { carService } from '../../services/carService'
 import { TICKET_STATUS_LABEL, ticketService, type TicketInput, type TicketMatch } from '../../services/ticketService'
 import { userService } from '../../services/userService'
 import type { Booking, Car, Ticket, User } from '../../types'
+import { useBranchScope } from './branchScope'
 import { DeleteButton, ExportPreviewModal, MobileCard, MobileMeta, Table, Td, Toolbar } from './shared'
 
 const STATUS_TONE: Record<Ticket['status'], 'neutral' | 'amber' | 'green'> = { pending: 'neutral', notified: 'amber', paid: 'green' }
 
 export function TicketsTab() {
+  const { scopeCars, scopeByCar } = useBranchScope()
   const [editing, setEditing] = useState<Ticket | 'new' | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
   const [exportFilename, setExportFilename] = useState('')
@@ -26,7 +28,10 @@ export function TicketsTab() {
   })
 
   if (loading || !data) return <Loading />
-  const { tickets, cars, users, bookings } = data
+  const { users } = data
+  const cars = scopeCars(data.cars)
+  const tickets = scopeByCar(data.tickets, cars)
+  const bookings = scopeByCar(data.bookings, cars)
   const carOf = (id: string) => cars.find((c) => c.id === id)
   const userOf = (id?: string | null) => users.find((u) => u.id === id)
   const tripOf = (id?: string | null) => bookings.find((b) => b.id === id)

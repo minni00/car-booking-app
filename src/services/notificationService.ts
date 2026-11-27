@@ -81,7 +81,7 @@ function render(opts: { heading: string; intro: string; rows: Array<[string, str
   const html = `<!doctype html><html lang="th"><body style="margin:0;padding:0;background:#f3f5f8">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f5f8;padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border:1px solid #e2e7ee;border-radius:12px;font-family:'IBM Plex Sans Thai',Tahoma,Arial,sans-serif">
-<tr><td style="background:#003d7c;border-radius:12px 12px 0 0;padding:18px 24px"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#fad407;vertical-align:middle"></span><span style="color:#ffffff;font-size:17px;font-weight:700;vertical-align:middle;margin-left:8px">FleetGo</span></td></tr>
+<tr><td style="background:#003d7c;border-radius:12px 12px 0 0;padding:18px 24px"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#fad407;vertical-align:middle"></span><span style="color:#ffffff;font-size:17px;font-weight:700;vertical-align:middle;margin-left:8px">FleetGo MCS</span></td></tr>
 <tr><td style="padding:24px">
 <h1 style="margin:0;color:#0b1f3a;font-size:20px;line-height:1.4">${esc(opts.heading)}</h1>
 <p style="margin:8px 0 16px;color:#5b6678;font-size:14px;line-height:1.6">${esc(opts.intro)}</p>
@@ -89,7 +89,7 @@ function render(opts: { heading: string; intro: string; rows: Array<[string, str
 ${opts.note ? `<p style="margin:16px 0 0;color:#5b6678;font-size:13px;line-height:1.6">${esc(opts.note)}</p>` : ''}
 <p style="margin:24px 0 0"><a href="${esc(tripUrl(opts.bookingId))}" style="display:inline-block;background:#003d7c;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 20px;border-radius:10px">ดูรายละเอียดการจอง</a></p>
 </td></tr>
-<tr><td style="padding:14px 24px;border-top:1px solid #e2e7ee;color:#8a94a6;font-size:12px">อีเมลนี้ส่งอัตโนมัติจากระบบจองรถองค์กร FleetGo · เลขที่จอง ${esc(opts.bookingId.toUpperCase())}</td></tr>
+<tr><td style="padding:14px 24px;border-top:1px solid #e2e7ee;color:#8a94a6;font-size:12px">อีเมลนี้ส่งอัตโนมัติจากระบบจองรถองค์กร FleetGo MCS · เลขที่จอง ${esc(opts.bookingId.toUpperCase())}</td></tr>
 </table></td></tr></table></body></html>`
   const text = [opts.heading, '', opts.intro, '', ...opts.rows.map(([k, v]) => `${k}: ${v}`), ...(opts.note ? ['', opts.note] : []), '', `ดูรายละเอียด: ${tripUrl(opts.bookingId)}`].join('\n')
   return { html, text }
@@ -131,7 +131,7 @@ export const notificationService = {
       note: 'กรุณาเริ่มใช้รถตามเวลาที่จอง หากไม่เริ่มใช้รถภายในเวลาที่กำหนด ระบบจะตัดสิทธิ์และปล่อยคิวอัตโนมัติ',
       bookingId: b.id,
     })
-    return deliver({ kind: 'booking_confirmed', bookingId: b.id, ...r, subject: `[FleetGo] ยืนยันการจองรถ ${car?.plate ?? ''} · ${range(b)}`, html, text })
+    return deliver({ kind: 'booking_confirmed', bookingId: b.id, ...r, subject: `[FleetGo MCS] ยืนยันการจองรถ ${car?.plate ?? ''} · ${range(b)}`, html, text })
   },
 
   /** อนุมัติขยายเวลาคืนรถ → ส่งถึงผู้จอง */
@@ -152,7 +152,7 @@ export const notificationService = {
       note: 'กรุณาคืนรถภายในเวลาใหม่ และระบุจุดจอด/จุดคืนกุญแจให้ครบตอนคืนรถ',
       bookingId: b.id,
     })
-    return deliver({ kind: 'extension_approved', bookingId: b.id, ...r, subject: `[FleetGo] อนุมัติขยายเวลาคืนรถ ${car?.plate ?? ''} ถึง ${fmtTime(b.end)} น.`, html, text })
+    return deliver({ kind: 'extension_approved', bookingId: b.id, ...r, subject: `[FleetGo MCS] อนุมัติขยายเวลาคืนรถ ${car?.plate ?? ''} ถึง ${fmtTime(b.end)} น.`, html, text })
   },
 
   /** อีเมลที่ส่งถึงผู้ใช้ (ล่าสุดก่อน) */

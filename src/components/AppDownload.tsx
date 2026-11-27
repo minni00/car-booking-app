@@ -19,7 +19,7 @@ export function ApkDownloadLink({ className }: { className?: string }) {
         <Smartphone className="size-5" strokeWidth={1.75} />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[15px] font-medium">ดาวน์โหลดแอป FleetGo (.apk)</span>
+        <span className="block text-[15px] font-medium">ดาวน์โหลดแอป FleetGo MCS (.apk)</span>
         <span className="block text-[13px] text-muted">สำหรับมือถือ Android</span>
       </span>
       <Download className="size-5 shrink-0 text-brand" strokeWidth={1.75} />

@@ -10,6 +10,7 @@ import { maintenanceService } from '../../services/maintenanceService'
 import { settingsService } from '../../services/settingsService'
 import { ticketService } from '../../services/ticketService'
 import type { Booking } from '../../types'
+import { useBranchScope } from './branchScope'
 
 /** ใช้งานต่ำกว่านี้ (% ของเวลาทำการ) = รถใช้น้อย ควรพิจารณา */
 const LOW_UTILIZATION = 20
@@ -43,12 +44,17 @@ const bookedHours = (b: Booking) => (new Date(b.end).getTime() - new Date(b.star
  * - ซ่อมบำรุง/พ.ร.บ./ประกัน ที่ใกล้ครบ → ทำก่อนเสียหนักหรือโดนปรับ
  */
 export function SavingsInsights({ from, to }: { from: string; to: string }) {
+  const { scopeCars, scopeByCar } = useBranchScope()
   const { data } = useQuery(async () => {
     const [bookings, cars, tickets, settings] = await Promise.all([bookingService.list(), carService.list(), ticketService.list(), settingsService.get()])
     return { bookings, cars, tickets, settings, alerts: maintenanceService.alerts(cars, settings) }
   })
   if (!data) return null
-  const { bookings, cars, tickets, settings, alerts } = data
+  const { settings } = data
+  const cars = scopeCars(data.cars)
+  const bookings = scopeByCar(data.bookings, cars)
+  const tickets = scopeByCar(data.tickets, cars)
+  const alerts = scopeByCar(data.alerts, cars)
 
   const fromMs = parseDateKey(from).getTime()
   const toMs = Math.min(parseDateKey(to).getTime() + 86_400_000, Date.now())

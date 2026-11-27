@@ -1,7 +1,8 @@
 import { ArrowLeft, Check, Clock, Flag, Fuel, KeyRound, ParkingSquare, Phone, PhoneCall, Play, ShieldCheck, TimerReset } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { AttachmentInput, AttachmentThumb, AttachmentViewer, MultiPhotoInput, PhotoInput, PhotoSlots } from '../components/Attachments'
-import { LazyMap } from '../components/LazyMap'
+import { useEffect, useState, type ReactNode } from 'react'
+import { AttachmentInput, MultiPhotoInput, PhotoInput, PhotoSlots } from '../components/Attachments'
+import { LocationCapture } from '../components/LocationCapture'
+import { TripDetails } from '../components/TripDetails'
 import { BookingStatusBadge } from '../components/StatusBadge'
 import { errorMessage, useToast } from '../components/Toast'
 import { Badge, Button, Card, CardHeader, ErrorText, Field, InfoRow, Input, LinkButton, Loading, Modal, Plate, Segmented, Textarea } from '../components/ui'
@@ -9,10 +10,9 @@ import { useCurrentUser } from '../context/AuthContext'
 import { addMinutes, fmtDate, fmtDateTime, fmtDuration, fmtRange, fmtTime, pad } from '../lib/date'
 import { cn, fmtBaht, fmtKm } from '../lib/format'
 import { useQuery } from '../lib/useQuery'
-import { Link } from '../router'
+import { Link, useLocation } from '../router'
 import { bookingService, distanceOf } from '../services/bookingService'
 import { carName, carService } from '../services/carService'
-import { fileService } from '../services/fileService'
 import { userService } from '../services/userService'
 import type { Attachment, Booking, Car, FuelMethod, GeoPoint, TripIssue } from '../types'
 
@@ -20,6 +20,8 @@ const STEPS = ['เริ่มใช้รถ', 'ระหว่างขับ
 
 export function TripPage({ bookingId }: { bookingId: string }) {
   const user = useCurrentUser()
+  const { search } = useLocation()
+  const returnToHistory = search.get('from') === 'history'
   const [returning, setReturning] = useState(false)
   const { data, loading } = useQuery(async () => {
     const booking = await bookingService.get(bookingId)
@@ -38,7 +40,7 @@ export function TripPage({ bookingId }: { bookingId: string }) {
 
   return (
     <div>
-      <Link to="/bookings" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
+      <Link to={returnToHistory ? '/bookings?tab=history' : '/bookings'} className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink">
         <ArrowLeft className="size-4" /> การจองของฉัน
       </Link>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 md:mb-7">
@@ -73,7 +75,7 @@ export function TripPage({ bookingId }: { bookingId: string }) {
               <InfoRow label="ผู้ขับขี่" value={driver?.name ?? '-'} />
               <InfoRow label="เลขไมล์ล่าสุด" value={fmtKm(car.mileage)} />
               <InfoRow label="เชื้อเพลิง" value={car.fuel} />
-              {booking.destination && <InfoRow label="ปลายทาง" value={booking.destination.label ?? 'ปักหมุดไว้'} />}
+              {booking.destination && booking.status !== 'in_progress' && <InfoRow label="ปลายทาง" value={booking.destination.label ?? 'ปักหมุดไว้'} />}
             </div>
           </Card>
           {/* ระหว่างขับขี่บนมือถือ แสดงการ์ดประกันในขั้นตอนแล้ว — ซ่อนตัวนี้เพื่อไม่ให้ซ้ำ */}
@@ -106,12 +108,16 @@ function Stepper({ step }: { step: number }) {
 function StartStep({ booking, car }: { booking: Booking; car: Car }) {
   const toast = useToast()
   const [mileage, setMileage] = useState(String(car.mileage))
-  const [gps, setGps] = useState<GeoPoint | null>(booking.pickupPin ?? null)
+  // ต้องกดบันทึกตำแหน่งเอง (ไม่ใช้หมุดตอนจองแทน)
+  const [gps, setGps] = useState<GeoPoint | null>(null)
   const [photos, setPhotos] = useState<Attachment[]>([])
   const [odometerPhoto, setOdometerPhoto] = useState<Attachment | null>(null)
   const [issue, setIssue] = useState<TripIssue | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const mileageOk = mileage !== '' && Number(mileage) >= car.mileage
+  const missing = [!gps && 'ตำแหน่งจุดขึ้นรถ', !mileageOk && 'เลขไมล์', !odometerPhoto && 'รูปเลขไมล์', issueMissing(issue)].filter(Boolean) as string[]
 
   const start = async () => {
     setBusy(true)
@@ -127,32 +133,67 @@ function StartStep({ booking, car }: { booking: Booking; car: Car }) {
   }
 
   return (
-    <Card>
-      <CardHeader icon={Play} title="ขั้นที่ 1 · เริ่มใช้รถ" subtitle="ตรวจจุดจอดและรับกุญแจ บันทึกเลขไมล์และตำแหน่งจริง" />
-      <div className="space-y-5 p-5">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Handover icon={ParkingSquare} label="ชั้น/เสาจอด" value={car.parkingSpot} />
-          <Handover icon={KeyRound} label="จุดรับกุญแจ (จากคนก่อน)" value={car.keyLocation} />
-        </div>
-        <Field label="เวลาเริ่มใช้รถ" hint="บันทึกอัตโนมัติเมื่อกดเริ่มใช้รถ">
-          <Input value={`${fmtDate(new Date())} · ${fmtTime(new Date())} น.`} disabled />
-        </Field>
-        <div>
-          <p className="mb-1.5 text-sm font-medium">ตำแหน่งจุดขึ้นจริง (GPS)</p>
-          <LazyMap value={gps} onChange={setGps} searchable={false} gpsLabel="ดึง GPS ตอนนี้" height={200} />
-        </div>
-        <Field label="เลขไมล์เริ่มต้น (กม.)" hint={`เลขไมล์ล่าสุดในระบบ ${fmtKm(car.mileage)}`}>
-          <Input type="number" inputMode="numeric" value={mileage} onChange={(e) => setMileage(e.target.value)} />
-        </Field>
-        <PhotoInput value={odometerPhoto} onChange={setOdometerPhoto} label="รูปหน้าปัดเลขไมล์" placeholder="แตะเพื่อถ่ายรูปเลขไมล์" />
-        <PhotoSlots value={photos} onChange={setPhotos} labels={['ก่อนใช้ · ด้านหน้า', 'ก่อนใช้ · ด้านหลัง']} />
-        <IssueReport value={issue} onChange={setIssue} />
-        <ErrorText>{error}</ErrorText>
-        <Button block size="lg" icon={Play} onClick={() => void start()} loading={busy}>
+    <Card className="overflow-hidden">
+      <CardHeader icon={Play} title="เริ่มใช้รถ" subtitle="ทำให้ครบก่อนออกรถ" />
+      <div className="grid grid-cols-2 gap-3 border-b border-line bg-paper/60 px-5 py-4">
+        <Handover icon={ParkingSquare} label="รถจอดอยู่ที่" value={car.parkingSpot} />
+        <Handover icon={KeyRound} label="รับกุญแจที่" value={car.keyLocation} />
+      </div>
+      <div className="divide-y divide-line">
+        <Task n={1} title="ตำแหน่งจุดขึ้นรถ" done={!!gps}>
+          <LocationCapture value={gps} onChange={setGps} reference={booking.pickupPin?.label} />
+        </Task>
+        <Task n={2} title="เลขไมล์เริ่มต้น" done={mileageOk && !!odometerPhoto}>
+          <div className="space-y-3">
+            <Field label="เลขไมล์บนหน้าปัด (กม.)" hint={`ล่าสุดในระบบ ${fmtKm(car.mileage)}`}>
+              <Input type="number" inputMode="numeric" value={mileage} onChange={(e) => setMileage(e.target.value)} />
+            </Field>
+            <PhotoInput value={odometerPhoto} onChange={setOdometerPhoto} label="รูปหน้าปัดเลขไมล์" placeholder="แตะเพื่อถ่ายรูปเลขไมล์" />
+          </div>
+        </Task>
+        <Task n={3} title="สภาพรถก่อนใช้" optional done={photos.length > 0 || !!issue}>
+          <div className="space-y-3">
+            <PhotoSlots value={photos} onChange={setPhotos} labels={['ด้านหน้า', 'ด้านหลัง']} />
+            <IssueReport value={issue} onChange={setIssue} />
+          </div>
+        </Task>
+      </div>
+      <TaskFooter missing={missing} error={error} note={`เวลาเริ่มจะบันทึกอัตโนมัติ (ตอนนี้ ${fmtTime(new Date())} น.)`}>
+        <Button block size="lg" icon={Play} onClick={() => void start()} loading={busy} disabled={missing.length > 0}>
           เริ่มใช้รถ
         </Button>
-      </div>
+      </TaskFooter>
     </Card>
+  )
+}
+
+/** ข้อความที่ยังขาดของการแจ้งปัญหา (ถ้าติ๊กแจ้งไว้) */
+const issueMissing = (issue: TripIssue | null) => (issue && (!issue.note.trim() || !issue.photos.length) ? 'รายละเอียด/รูปปัญหา' : false)
+
+/** หัวข้อสิ่งที่ต้องทำ — วงกลมตัวเลขเปลี่ยนเป็นเครื่องหมายถูกเมื่อทำครบ */
+function Task({ n, title, done, optional, children }: { n: number; title: string; done: boolean; optional?: boolean; children: ReactNode }) {
+  return (
+    <section className="px-5 py-5">
+      <h3 className="mb-3 flex items-center gap-2.5 text-[15px] font-semibold">
+        <span className={cn('grid size-6 shrink-0 place-items-center rounded-full text-[12px] transition-colors', done ? 'bg-emerald-500 text-white' : 'bg-paper text-muted ring-1 ring-line')}>
+          {done ? <Check className="size-3.5" strokeWidth={3} /> : n}
+        </span>
+        {title}
+        {optional && <span className="text-[12px] font-normal text-muted">ไม่บังคับ</span>}
+      </h3>
+      {children}
+    </section>
+  )
+}
+
+/** ท้ายฟอร์ม: บอกสิ่งที่ยังขาด + ปุ่มหลัก */
+function TaskFooter({ missing, error, note, children }: { missing: string[]; error: string | null; note?: string; children: ReactNode }) {
+  return (
+    <div className="space-y-2.5 border-t border-line bg-paper/50 px-5 py-4">
+      <ErrorText>{error}</ErrorText>
+      {children}
+      <p className="text-center text-[12px] text-muted">{missing.length ? <>ยังขาด: <span className="font-medium text-ink/80">{missing.join(' · ')}</span></> : note}</p>
+    </div>
   )
 }
 
@@ -228,6 +269,8 @@ function DrivingStep({ booking, car, adminPhone, onReturn }: { booking: Booking;
           {remaining >= 0 ? <span className="text-sm text-white/90">เหลือเวลา <span className="num">{fmtDuration(remaining)}</span></span> : <span className="text-sm font-medium text-red-400">เกินเวลาคืน <span className="num">{fmtDuration(-remaining)}</span></span>}
         </div>
       </div>
+
+      <StartInfo booking={booking} />
 
       <Card>
         <CardHeader icon={TimerReset} title="ขอขยายเวลาคืนรถ" subtitle="อนุมัติอัตโนมัติหากไม่ชนคิวถัดไป" />
@@ -325,6 +368,55 @@ function DrivingStep({ booking, car, adminPhone, onReturn }: { booking: Booking;
 
 const EXTEND_OPTIONS = [30, 60, 120] as const
 
+/** ชื่อสถานที่ หรือพิกัด (ถ้าเป็นหมุด GPS) */
+const placeOf = (p?: GeoPoint | null) => (p ? (p.label && !p.label.startsWith('GPS') && !p.label.startsWith('ปักหมุด ') ? p.label : `${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}`) : '—')
+
+/** ระหว่างขับขี่: สรุปข้อมูลที่กรอกตอนเริ่ม (เฉพาะที่จำเป็น) */
+function StartInfo({ booking: b }: { booking: Booking }) {
+  return (
+    <Card>
+      <p className="px-5 pt-4 text-[12px] font-medium text-muted">การเดินทางนี้</p>
+      <ol className="relative px-5 pt-1 pb-3">
+        <span className="absolute top-[20px] bottom-[28px] left-[25px] w-px bg-line" aria-hidden />
+        <li className="relative flex items-start gap-3 py-2">
+          <span className="mt-1.5 size-[11px] shrink-0 rounded-full border-2 border-white bg-emerald-500 ring-1 ring-emerald-500" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[12px] text-muted">ขึ้นรถ{b.actualStart && <span className="num"> · {fmtTime(b.actualStart)} น.</span>}</p>
+            <p className="text-sm leading-snug font-medium break-words">{placeOf(b.startGps)}</p>
+          </div>
+        </li>
+        <li className="relative flex items-start gap-3 py-2">
+          <span className="mt-1.5 size-[11px] shrink-0 rounded-full border-2 border-white bg-sun ring-1 ring-sun" />
+          <div className="min-w-0 flex-1">
+            <p className="text-[12px] text-muted">ปลายทาง</p>
+            <p className="text-sm leading-snug font-medium break-words">{b.destination ? placeOf(b.destination) : <span className="font-normal text-muted">ไม่ได้ระบุ</span>}</p>
+          </div>
+        </li>
+      </ol>
+      <dl className="grid grid-cols-2 divide-x divide-line border-t border-line">
+        <div className="px-5 py-3">
+          <dt className="text-[12px] text-muted">เลขไมล์ตอนเริ่ม</dt>
+          <dd className="num mt-0.5 font-medium">{b.startMileage != null ? fmtKm(b.startMileage) : '—'}</dd>
+        </div>
+        <div className="px-5 py-3">
+          <dt className="text-[12px] text-muted">ผู้โดยสาร</dt>
+          <dd className="num mt-0.5 font-medium">{b.passengers} คน</dd>
+        </div>
+      </dl>
+      {b.startIssue && (
+        <div className="flex gap-2.5 border-t border-line bg-amber-50/60 px-5 py-3 text-[13px]">
+          <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-amber-500" />
+          <p className="min-w-0 leading-snug break-words">
+            <span className="font-medium text-amber-800">แจ้งไว้ตอนเริ่ม · </span>
+            {b.startIssue.note}
+            {b.startIssue.photos.length > 0 && <span className="text-muted"> ({b.startIssue.photos.length} รูป)</span>}
+          </p>
+        </div>
+      )}
+    </Card>
+  )
+}
+
 function InsuranceCard({ car, adminPhone }: { car: Car; adminPhone?: string }) {
   return (
     <Card>
@@ -367,6 +459,16 @@ function ReturnStep({ booking, car, onBack }: { booking: Booking; car: Car; onBa
 
   const end = Number(mileage)
   const distance = mileage && end >= startMileage ? end - startMileage : null
+  const parkingOk = !!parkingSpot.trim() && !!keyLocation.trim()
+  const fuelOk = fuelMethod === 'none' || Number(fuelAmount) > 0
+  const missing = [
+    !gps && 'ตำแหน่งจุดคืนรถ',
+    !parkingOk && 'จุดจอด/กุญแจ',
+    distance == null && 'เลขไมล์',
+    !odometerPhoto && 'รูปเลขไมล์',
+    !fuelOk && 'ยอดเติมน้ำมัน',
+    issueMissing(issue),
+  ].filter(Boolean) as string[]
 
   const submit = async () => {
     setBusy(true)
@@ -393,20 +495,37 @@ function ReturnStep({ booking, car, onBack }: { booking: Booking; car: Car; onBa
   }
 
   return (
-    <Card>
-      <CardHeader icon={Flag} title="ขั้นที่ 3 · คืนรถ" subtitle="ข้อมูลจุดจอดและกุญแจจะส่งต่อให้ผู้ใช้คนถัดไป" action={<Button size="sm" variant="ghost" onClick={onBack}>ย้อนกลับ</Button>} />
-      <div className="space-y-5 p-5">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="ชั้น/เสาจอดคืน">
-            <Input value={parkingSpot} onChange={(e) => setParkingSpot(e.target.value)} placeholder="เช่น B1 · เสา A3" />
-          </Field>
-          <Field label="จุดคืนกุญแจ (ส่งต่อคนถัดไป)">
-            <Input value={keyLocation} onChange={(e) => setKeyLocation(e.target.value)} placeholder="เช่น ตู้กุญแจ ชั้น 1 ช่อง 01" />
-          </Field>
-        </div>
-
-        <div>
-          <p className="mb-1.5 flex items-center gap-1.5 text-sm font-medium"><Fuel className="size-4" /> การเติมน้ำมัน</p>
+    <Card className="overflow-hidden">
+      <CardHeader icon={Flag} title="คืนรถ" subtitle="จุดจอดและกุญแจจะส่งต่อให้คนถัดไป" action={<Button size="sm" variant="ghost" onClick={onBack}>ย้อนกลับ</Button>} />
+      <div className="divide-y divide-line">
+        <Task n={1} title="ตำแหน่งจุดคืนรถ" done={!!gps}>
+          <LocationCapture value={gps} onChange={setGps} pinColor="#003D7C" />
+        </Task>
+        <Task n={2} title="จุดจอดและกุญแจ" done={parkingOk}>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="ชั้น/เสาจอด">
+              <Input value={parkingSpot} onChange={(e) => setParkingSpot(e.target.value)} placeholder="เช่น B1 · เสา A3" />
+            </Field>
+            <Field label="คืนกุญแจที่">
+              <Input value={keyLocation} onChange={(e) => setKeyLocation(e.target.value)} placeholder="เช่น ตู้กุญแจ ชั้น 1 ช่อง 01" />
+            </Field>
+          </div>
+        </Task>
+        <Task n={3} title="เลขไมล์คืนรถ" done={distance != null && !!odometerPhoto}>
+          <div className="space-y-3">
+            <div className="grid grid-cols-[1fr_auto] items-start gap-4">
+              <Field label="เลขไมล์บนหน้าปัด (กม.)" hint={`ตอนเริ่ม ${fmtKm(startMileage)}`}>
+                <Input type="number" inputMode="numeric" value={mileage} onChange={(e) => setMileage(e.target.value)} placeholder={String(startMileage)} />
+              </Field>
+              <div className="min-w-20 pt-[26px] text-right">
+                <p className="text-[12px] text-muted">ระยะทาง</p>
+                <p className="num text-lg leading-tight font-semibold">{distance != null ? fmtKm(distance) : '—'}</p>
+              </div>
+            </div>
+            <PhotoInput value={odometerPhoto} onChange={setOdometerPhoto} label="รูปหน้าปัดเลขไมล์" placeholder="แตะเพื่อถ่ายรูปเลขไมล์" />
+          </div>
+        </Task>
+        <Task n={4} title="การเติมน้ำมัน" done={fuelOk}>
           <Segmented
             value={fuelMethod}
             onChange={setFuelMethod}
@@ -425,31 +544,19 @@ function ReturnStep({ booking, car, onBack }: { booking: Booking; car: Car; onBa
               <AttachmentInput label="สลิปน้ำมัน" value={fuelSlip} onChange={setFuelSlip} accept="image/*,application/pdf" capture />
             </div>
           )}
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="เลขไมล์คืนรถ (กม.)" hint={`เริ่มต้น ${fmtKm(startMileage)}`}>
-            <Input type="number" inputMode="numeric" value={mileage} onChange={(e) => setMileage(e.target.value)} placeholder={String(startMileage)} />
-          </Field>
-          <div className="rounded-xl bg-paper p-3">
-            <p className="text-sm text-muted">ระยะทางที่ใช้</p>
-            <p className="num text-2xl font-medium">{distance != null ? fmtKm(distance) : '—'}</p>
+        </Task>
+        <Task n={5} title="สภาพรถหลังใช้" optional done={photos.length > 0 || !!issue}>
+          <div className="space-y-3">
+            <PhotoSlots value={photos} onChange={setPhotos} labels={['ด้านหน้า', 'ด้านหลัง']} />
+            <IssueReport value={issue} onChange={setIssue} />
           </div>
-        </div>
-        <PhotoInput value={odometerPhoto} onChange={setOdometerPhoto} label="รูปหน้าปัดเลขไมล์ตอนคืน" placeholder="แตะเพื่อถ่ายรูปเลขไมล์" />
-
-        <div>
-          <p className="mb-1.5 text-sm font-medium">ตำแหน่งจุดคืนรถ (GPS) <span className="font-normal text-muted">(ไม่บังคับ)</span></p>
-          <LazyMap value={gps} onChange={setGps} searchable={false} gpsLabel="ดึง GPS ตอนนี้" height={180} />
-        </div>
-
-        <PhotoSlots value={photos} onChange={setPhotos} labels={['หลังใช้ · ด้านหน้า', 'หลังใช้ · ด้านหลัง']} />
-        <IssueReport value={issue} onChange={setIssue} />
-        <ErrorText>{error}</ErrorText>
-        <Button block size="lg" icon={Check} onClick={() => void submit()} loading={busy}>
+        </Task>
+      </div>
+      <TaskFooter missing={missing} error={error} note="ตรวจของในรถก่อนกดยืนยัน">
+        <Button block size="lg" icon={Check} onClick={() => void submit()} loading={busy} disabled={missing.length > 0}>
           ยืนยันคืนรถ
         </Button>
-      </div>
+      </TaskFooter>
     </Card>
   )
 }
@@ -495,9 +602,6 @@ const FUEL_LABEL: Record<FuelMethod, string> = { none: 'ไม่ได้เต
 
 function TripSummary({ booking }: { booking: Booking }) {
   const distance = distanceOf(booking)
-  const photos = [...(booking.startPhotos ?? []), ...(booking.endPhotos ?? [])]
-  const odometer: Array<[string, Attachment | null | undefined]> = [['เลขไมล์ตอนเริ่ม', booking.startOdometerPhoto], ['เลขไมล์ตอนคืน', booking.endOdometerPhoto]]
-  const issues: Array<[string, TripIssue | null | undefined]> = [['ปัญหาที่แจ้งตอนเริ่มใช้', booking.startIssue], ['ปัญหาที่แจ้งตอนคืนรถ', booking.endIssue]]
   if (booking.status !== 'completed') {
     return (
       <Card className="p-6 text-center">
@@ -521,51 +625,7 @@ function TripSummary({ booking }: { booking: Booking }) {
         <InfoRow label="จุดจอดคืน" value={booking.returnParkingSpot ?? '-'} />
         <InfoRow label="จุดคืนกุญแจ" value={booking.returnKeyLocation ?? '-'} />
       </div>
-      {(booking.startOdometerPhoto || booking.endOdometerPhoto) && (
-        <div className="grid grid-cols-2 gap-3 px-5 pb-5">
-          {odometer.map(([label, p]) => (
-            <div key={label}>
-              <p className="mb-1.5 text-[12px] text-muted">{label}</p>
-              {p ? (
-                <AttachmentViewer attachment={p} title={`ดู${label}`} className="w-full rounded-lg">
-                  <img src={fileService.thumbOf(p)} alt={label} loading="lazy" decoding="async" className="h-28 w-full rounded-lg border border-line object-cover" />
-                </AttachmentViewer>
-              ) : (
-                <div className="grid h-28 place-items-center rounded-lg bg-paper text-sm text-muted">ไม่มีรูป</div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-      {issues.map(([label, issue]) =>
-        issue ? (
-          <div key={label} className="mx-5 mb-5 rounded-xl border border-amber-300 bg-amber-50/60 p-4">
-            <p className="text-sm font-semibold">{label}</p>
-            <p className="mt-1 text-sm whitespace-pre-line">{issue.note}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {issue.photos.map((p) => (
-                <AttachmentViewer key={p.id} attachment={p}>
-                  <AttachmentThumb attachment={p} className="size-16" />
-                </AttachmentViewer>
-              ))}
-            </div>
-          </div>
-        ) : null,
-      )}
-      {(photos.length > 0 || booking.fuelSlip) && (
-        <div className="flex flex-wrap gap-2 px-5 pb-5">
-          {photos.map((p) => (
-            <AttachmentViewer key={p.id} attachment={p}>
-              <AttachmentThumb attachment={p} className="size-20" />
-            </AttachmentViewer>
-          ))}
-          {booking.fuelSlip && (
-            <AttachmentViewer attachment={booking.fuelSlip} title="สลิปน้ำมัน">
-              <AttachmentThumb attachment={booking.fuelSlip} className="size-20" />
-            </AttachmentViewer>
-          )}
-        </div>
-      )}
+      <TripDetails booking={booking} className="border-t border-line px-5 pt-5 pb-6" />
     </Card>
   )
 }

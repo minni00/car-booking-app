@@ -7,8 +7,8 @@ import { Link } from '../router'
  * ปรับชื่อองค์กร/ช่องทางติดต่อ/ระยะเวลาเก็บ ให้ตรงนโยบายองค์กร และให้ฝ่ายกฎหมาย/DPO ตรวจก่อนประกาศใช้
  */
 const POLICY = {
-  org: 'องค์กรผู้ใช้งานระบบ FleetGo (นายจ้างของผู้ใช้งาน)',
-  contact: 'ผู้ดูแลระบบ FleetGo หรือเจ้าหน้าที่คุ้มครองข้อมูลส่วนบุคคล (DPO) ขององค์กร',
+  org: 'องค์กรผู้ใช้งานระบบ FleetGo MCS (นายจ้างของผู้ใช้งาน)',
+  contact: 'ผู้ดูแลระบบ FleetGo MCS หรือเจ้าหน้าที่คุ้มครองข้อมูลส่วนบุคคล (DPO) ขององค์กร',
   updated: '27 พฤศจิกายน 2569',
   version: '1.0',
 }
@@ -66,10 +66,10 @@ export function PrivacyPage({ standalone }: { standalone?: boolean }) {
         </Link>
         <h1 className="text-[28px] leading-[1.25] font-semibold tracking-[-0.02em] md:text-[36px]">นโยบายความเป็นส่วนตัว</h1>
         <p className="mt-2 text-[14px] text-muted">
-          ระบบจองรถองค์กร FleetGo · ฉบับที่ <span className="num">{POLICY.version}</span> · ปรับปรุงล่าสุด {POLICY.updated}
+          ระบบจองรถองค์กร FleetGo MCS · ฉบับที่ <span className="num">{POLICY.version}</span> · ปรับปรุงล่าสุด {POLICY.updated}
         </p>
         <p className="mt-5 text-[15px] leading-[1.75] text-ink/85">
-          นโยบายนี้อธิบายว่าระบบ FleetGo เก็บข้อมูลส่วนบุคคลอะไร ใช้เพื่ออะไร เก็บนานเท่าไร และคุณมีสิทธิ์อะไรบ้าง ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA)
+          นโยบายนี้อธิบายว่าระบบ FleetGo MCS เก็บข้อมูลส่วนบุคคลอะไร ใช้เพื่ออะไร เก็บนานเท่าไร และคุณมีสิทธิ์อะไรบ้าง ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA)
         </p>
 
         <div className="mt-6">

@@ -11,3 +11,14 @@ export function LazyMap(props: ComponentProps<typeof MapPicker>) {
     </Suspense>
   )
 }
+
+const TripMap = lazy(() => import('./TripMap'))
+
+/** แผนที่ตำแหน่งของทริป (ดูอย่างเดียว) — โหลด Leaflet เมื่อแสดงเท่านั้น */
+export function LazyTripMap(props: ComponentProps<typeof TripMap>) {
+  return (
+    <Suspense fallback={<div className="grid place-items-center rounded-xl border border-line bg-paper text-sm text-muted" style={{ height: props.height ?? 220 }}>กำลังโหลดแผนที่…</div>}>
+      <TripMap {...props} />
+    </Suspense>
+  )
+}

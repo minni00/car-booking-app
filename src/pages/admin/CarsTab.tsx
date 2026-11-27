@@ -11,7 +11,8 @@ import { fmtKm } from '../../lib/format'
 import { useQuery } from '../../lib/useQuery'
 import { bookingService } from '../../services/bookingService'
 import { carName, carService, type CarInput } from '../../services/carService'
-import type { Car, FuelType } from '../../types'
+import type { Branch, Car, FuelType } from '../../types'
+import { useBranchScope } from './branchScope'
 import { DeleteButton, ExportPreviewModal, MobileCard, MobileMeta, Table, Td } from './shared'
 
 const FUELS: FuelType[] = ['เบนซิน', 'ดีเซล', 'ไฮบริด', 'ไฟฟ้า']
@@ -32,6 +33,7 @@ const emptyCar = (): CarInput => ({
   insurance: { company: '', policyNo: '', type: 'ชั้น 1', phone: '', expiry: toDateKey(addDays(new Date(), 365)) },
   actExpiry: toDateKey(addDays(new Date(), 365)),
   lastServiceMileage: 0,
+  branchId: null,
 })
 
 function toInput(car: Car): CarInput {
@@ -44,6 +46,7 @@ export function CarsTab() {
   const toast = useToast()
   const [editing, setEditing] = useState<{ id: string | null; form: CarInput } | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
+  const { branches, branchId, all, scopeCars, scopeByCar, branchName } = useBranchScope()
 
   const { data, loading } = useQuery(async () => {
     const [cars, bookings] = await Promise.all([carService.list(), bookingService.list()])
@@ -52,14 +55,16 @@ export function CarsTab() {
 
   if (loading || !data) return <Loading />
 
-  const { cars, bookings } = data
+  const cars = scopeCars(data.cars)
+  const bookings = scopeByCar(data.bookings, cars)
   const today = toDateKey()
   const inUse = new Set(bookings.filter((b) => b.status === 'in_progress').map((b) => b.carId))
   const todayCount = bookings.filter((b) => toDateKey(b.start) === today && b.status !== 'cancelled').length
-  const exportFilename = `fleetgo-cars-${today}.csv`
-  const exportHeaders = ['รหัสรถ', 'ทะเบียน', 'จังหวัด', 'ยี่ห้อ', 'รุ่น', 'สี', 'ที่นั่ง', 'เชื้อเพลิง', 'เลขไมล์', 'สถานะการจอง', 'สถานะการใช้', 'จุดจอด', 'จุดรับกุญแจ', 'บริษัทประกัน', 'เลขกรมธรรม์', 'ประเภทประกัน', 'โทรศัพท์ประกัน', 'หมดอายุประกัน', 'หมดอายุ พ.ร.บ.', 'ไมล์เช็กระยะล่าสุด', 'รูปภาพ']
+  const exportFilename = `fleetgo-cars-${all ? '' : `${branches.find((b) => b.id === branchId)?.code ?? ''}-`}${today}.csv`
+  const exportHeaders = ['รหัสรถ', 'สาขา', 'ทะเบียน', 'จังหวัด', 'ยี่ห้อ', 'รุ่น', 'สี', 'ที่นั่ง', 'เชื้อเพลิง', 'เลขไมล์', 'สถานะการจอง', 'สถานะการใช้', 'จุดจอด', 'จุดรับกุญแจ', 'บริษัทประกัน', 'เลขกรมธรรม์', 'ประเภทประกัน', 'โทรศัพท์ประกัน', 'หมดอายุประกัน', 'หมดอายุ พ.ร.บ.', 'ไมล์เช็กระยะล่าสุด', 'รูปภาพ']
   const exportRows = cars.map((car) => [
     car.id,
+    branchName(car),
     car.plate,
     car.province,
     car.brand,
@@ -112,7 +117,7 @@ export function CarsTab() {
           <Button variant="secondary" icon={FileSpreadsheet} onClick={() => setExportOpen(true)} disabled={!cars.length}>
             Export Excel
           </Button>
-          <Button icon={Plus} onClick={() => setEditing({ id: null, form: emptyCar() })}>
+          <Button icon={Plus} onClick={() => setEditing({ id: null, form: { ...emptyCar(), branchId: all ? (branches[0]?.id ?? null) : branchId } })}>
             เพิ่มข้อมูลรถ
           </Button>
         </div>
@@ -141,6 +146,7 @@ export function CarsTab() {
                 ['เชื้อเพลิง / ที่นั่ง', `${car.fuel} · ${car.seats} ที่`],
                 ['จุดจอด', car.parkingSpot],
                 ['รับกุญแจ', car.keyLocation],
+                ...(all ? [['สาขา', branchName(car)] as [string, string]] : []),
               ]}
             />
             <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3">
@@ -172,7 +178,10 @@ export function CarsTab() {
               <p className="line-clamp-2 leading-snug font-medium" title={carName(car)}>
                 {carName(car)}
               </p>
-              <p className="mt-0.5 text-xs text-muted">{car.color}</p>
+              <p className="mt-0.5 text-xs text-muted">
+                {car.color}
+                {all && <> · {branchName(car)}</>}
+              </p>
             </Td>
             <Td className="num whitespace-nowrap">{fmtKm(car.mileage)}</Td>
             <Td className="whitespace-nowrap">
@@ -213,12 +222,12 @@ export function CarsTab() {
         rows={exportRows}
         onConfirm={confirmExport}
       />
-      {editing && <CarFormModal key={editing.id ?? 'new'} id={editing.id} initial={editing.form} onClose={() => setEditing(null)} />}
+      {editing && <CarFormModal key={editing.id ?? 'new'} id={editing.id} initial={editing.form} branches={branches} onClose={() => setEditing(null)} />}
     </div>
   )
 }
 
-function CarFormModal({ id, initial, onClose }: { id: string | null; initial: CarInput; onClose: () => void }) {
+function CarFormModal({ id, initial, branches, onClose }: { id: string | null; initial: CarInput; branches: Branch[]; onClose: () => void }) {
   const toast = useToast()
   const [form, setForm] = useState<CarInput>(initial)
   const [busy, setBusy] = useState(false)
@@ -266,6 +275,12 @@ function CarFormModal({ id, initial, onClose }: { id: string | null; initial: Ca
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
+          <Field label="สาขา" className="sm:col-span-3">
+            <Select value={form.branchId ?? ''} onChange={(e) => set('branchId', e.target.value || null)}>
+              <option value="">ไม่ระบุสาขา</option>
+              {branches.map((b) => <option key={b.id} value={b.id}>{b.code} · {b.name}</option>)}
+            </Select>
+          </Field>
           <Field label="ทะเบียน"><Input value={form.plate} onChange={(e) => set('plate', e.target.value)} placeholder="1กข 1234" /></Field>
           <Field label="จังหวัด"><Input value={form.province} onChange={(e) => set('province', e.target.value)} /></Field>
           <Field label="สี"><Input value={form.color} onChange={(e) => set('color', e.target.value)} /></Field>
