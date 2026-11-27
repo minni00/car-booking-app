@@ -72,6 +72,7 @@ export function FleetPage() {
                 <div className="relative overflow-hidden rounded-2xl bg-paper">
                   <CarImage
                     car={car}
+                    full
                     className={cn('h-[132px] w-full object-cover object-center transition-transform duration-300 sm:aspect-[16/9] sm:h-auto', bookable && 'group-hover:scale-[1.03]')}
                     iconClassName="size-10"
                   />

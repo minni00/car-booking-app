@@ -10,6 +10,7 @@ import { FleetPage } from './pages/FleetPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { MyBookingsPage } from './pages/MyBookingsPage'
+import { PrivacyPage } from './pages/PrivacyPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { TripPage } from './pages/TripPage'
 import { matchPath, useLocation } from './router'
@@ -26,6 +27,7 @@ const ROUTES: Route[] = [
   { path: '/bookings/:id/confirmed', render: (p) => <BookingConfirmedPage bookingId={p.id} /> },
   { path: '/trip/:id', render: (p) => <TripPage key={p.id} bookingId={p.id} /> },
   { path: '/profile', render: () => <ProfilePage /> },
+  { path: '/privacy', render: () => <PrivacyPage /> },
   {
     path: '/admin',
     render: () => (
@@ -55,8 +57,10 @@ function Routes() {
 
 function Gate() {
   const { user, ready } = useAuth()
+  const { pathname } = useLocation()
   if (!ready) return <Loading />
-  if (!user) return <LoginPage />
+  // นโยบายความเป็นส่วนตัวต้องเปิดอ่านได้ก่อนเข้าสู่ระบบ
+  if (!user) return pathname === '/privacy' ? <PrivacyPage standalone /> : <LoginPage />
   return (
     <AppShell>
       <Routes />

@@ -7,6 +7,7 @@ import { config } from '../config'
 import { useAuth } from '../context/AuthContext'
 import type { LoginResult } from '../services/authService'
 import { ApkDownloadLink } from '../components/AppDownload'
+import { Link } from '../router'
 
 function MicrosoftLogo() {
   return (
@@ -105,7 +106,12 @@ export function LoginPage() {
 
           <ApkDownloadLink className="mt-8" />
         </div>
-        <p className="num text-center text-[11px] text-muted lg:text-left">© FLEETGO</p>
+        <p className="text-center text-[11px] text-muted lg:text-left">
+          <span className="num">© FLEETGO</span> ·{' '}
+          <Link to="/privacy" className="underline-offset-2 hover:text-ink hover:underline">
+            นโยบายความเป็นส่วนตัว
+          </Link>
+        </p>
       </main>
     </div>
   )

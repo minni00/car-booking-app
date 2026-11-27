@@ -260,7 +260,7 @@ function CarFormModal({ id, initial, onClose }: { id: string | null; initial: Ca
         <div className="grid gap-4 sm:grid-cols-[180px_1fr]">
           <div>
             <p className="mb-1.5 text-sm font-medium">ภาพตัวอย่าง</p>
-            <CarImage car={{ ...form }} className="aspect-[16/10] w-full rounded-xl border border-line" />
+            <CarImage car={{ ...form }} full className="aspect-[16/10] w-full rounded-xl border border-line" />
           </div>
           <AttachmentInput label="แนบรูปรถ" value={form.image} onChange={(v) => set('image', v)} accept="image/*" hint="ถ้าไม่แนบ ระบบจะแสดงไอคอนรถแทน" />
         </div>

@@ -12,6 +12,7 @@ import { useQuery } from '../lib/useQuery'
 import { Link } from '../router'
 import { bookingService, distanceOf } from '../services/bookingService'
 import { carName, carService } from '../services/carService'
+import { fileService } from '../services/fileService'
 import { userService } from '../services/userService'
 import type { Attachment, Booking, Car, FuelMethod, GeoPoint, TripIssue } from '../types'
 
@@ -527,7 +528,7 @@ function TripSummary({ booking }: { booking: Booking }) {
               <p className="mb-1.5 text-[12px] text-muted">{label}</p>
               {p ? (
                 <AttachmentViewer attachment={p} title={`ดู${label}`} className="w-full rounded-lg">
-                  <img src={p.url} alt={label} className="h-28 w-full rounded-lg border border-line object-cover" />
+                  <img src={fileService.thumbOf(p)} alt={label} loading="lazy" decoding="async" className="h-28 w-full rounded-lg border border-line object-cover" />
                 </AttachmentViewer>
               ) : (
                 <div className="grid h-28 place-items-center rounded-lg bg-paper text-sm text-muted">ไม่มีรูป</div>

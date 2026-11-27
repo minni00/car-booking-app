@@ -180,7 +180,7 @@ function FreeBar({ hours, span, className }: { hours: number; span: number; clas
 function AvailableCarTile({ car, hours, span }: { car: Car; hours: number; span: number }) {
   return (
     <Link to={`/book/${car.id}`} className="w-[72%] max-w-[300px] shrink-0 snap-start active:opacity-80 sm:w-[45%]">
-      <CarImage car={car} className="aspect-[16/10] w-full rounded-2xl" iconClassName="size-10" />
+      <CarImage car={car} full className="aspect-[16/10] w-full rounded-2xl" iconClassName="size-10" />
       <div className="mt-2.5 px-0.5">
         <p className="truncate text-[15px] font-semibold">{carName(car)}</p>
         <p className="mt-0.5 flex items-center gap-2 text-[13px] text-muted">

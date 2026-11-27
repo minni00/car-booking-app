@@ -1,4 +1,4 @@
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { errorMessage, useToast } from '../components/Toast'
 import { Badge, Button, InfoRow, Loading, Modal, SectionTitle } from '../components/ui'
@@ -150,6 +150,11 @@ export function ProfilePage() {
             </div>
             <TestDataReset className="mt-4" />
           </section>
+
+          <Link to="/privacy" className="flex items-center justify-between border-y border-line py-3.5 text-sm font-medium transition-colors hover:text-brand">
+            นโยบายความเป็นส่วนตัว (PDPA)
+            <ChevronRight className="size-4 text-muted" />
+          </Link>
 
           <ApkDownloadLink />
         </div>

@@ -77,7 +77,7 @@ export function AttachmentInput({ value, onChange, label, accept = 'image/*,appl
 
 export function AttachmentThumb({ attachment, className }: { attachment: Attachment; className?: string }) {
   return fileService.isImage(attachment) ? (
-    <img src={attachment.url} alt={attachment.name} className={cn('shrink-0 rounded-lg object-cover', className)} />
+    <img src={fileService.thumbOf(attachment)} alt={attachment.name} loading="lazy" decoding="async" className={cn('shrink-0 rounded-lg object-cover', className)} />
   ) : (
     <span className={cn('grid shrink-0 place-items-center rounded-lg bg-red-50 text-red-600', className)}>
       <FileText className="size-5" />
@@ -140,7 +140,7 @@ export function PhotoSlots({ value, onChange, labels, required }: { value: Attac
             <div key={label} className="relative">
               <label htmlFor={inputId} className={cn('flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border text-xs text-muted transition', a ? 'border-line' : 'border-dashed border-ink/20 bg-paper/60 hover:border-accent hover:text-accent')}>
                 {a ? (
-                  <img src={a.url} alt={label} className="size-full object-cover" />
+                  <img src={fileService.thumbOf(a)} alt={label} decoding="async" className="size-full object-cover" />
                 ) : busy === i ? (
                   <Loader2 className="size-5 animate-spin" />
                 ) : (
@@ -257,7 +257,7 @@ export function MultiPhotoInput({ value, onChange, max = 4 }: { value: Attachmen
       <div className="grid grid-cols-4 gap-2">
         {value.map((a, i) => (
           <div key={a.id} className="relative aspect-square overflow-hidden rounded-lg border border-line">
-            <img src={a.url} alt={`รูปที่ ${i + 1}`} className="size-full object-cover" />
+            <img src={fileService.thumbOf(a)} alt={`รูปที่ ${i + 1}`} decoding="async" className="size-full object-cover" />
             <AttachmentViewer attachment={a} title={`ดูรูปที่ ${i + 1}`} className="absolute top-1 left-1 z-10 grid size-7 place-items-center rounded-full bg-white/90 text-brand shadow">
               <Eye className="size-3.5" />
             </AttachmentViewer>

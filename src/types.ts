@@ -30,6 +30,8 @@ export interface Attachment {
   type: string
   size: number
   url: string
+  /** รูปเล็ก (ด้านยาว ~400px) สำหรับหน้ารายการ — ไม่มี = ใช้ `url` แทน */
+  thumbUrl?: string
   uploadedAt: string
 }
 

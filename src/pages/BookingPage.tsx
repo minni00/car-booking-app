@@ -180,7 +180,7 @@ export function BookingPage({ carId }: { carId: string }) {
         {/* ซ้าย: ข้อมูลรถ + ตารางว่างทั้งวัน */}
         <div className="space-y-5 lg:col-span-7">
           <Card className="flex overflow-hidden">
-            <CarImage car={car} className="w-24 shrink-0 sm:w-56" iconClassName="size-8 sm:size-14" />
+            <CarImage car={car} full className="w-24 shrink-0 sm:w-56" iconClassName="size-8 sm:size-14" />
             <div className="min-w-0 flex-1 p-3.5 sm:p-4 md:p-5">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">

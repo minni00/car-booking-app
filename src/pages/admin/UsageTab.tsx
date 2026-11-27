@@ -10,6 +10,7 @@ import { bookingService } from '../../services/bookingService'
 import { carService } from '../../services/carService'
 import { userService } from '../../services/userService'
 import type { Booking, FuelMethod } from '../../types'
+import { SavingsInsights } from './SavingsInsights'
 import { ExportPreviewModal, MobileCard, MobileMeta, Table, Td } from './shared'
 
 /** วันเวลาเต็มสำหรับไฟล์ส่งออก เช่น 26/11/2569 15:00 */
@@ -109,6 +110,8 @@ export function UsageTab() {
         <Stat label="ระยะทางรวม" value={fmtKm(totalKm)} />
         <Stat label="ค่าน้ำมันรวม" value={fmtBaht(totalFuel)} />
       </div>
+
+      <SavingsInsights from={from} to={to} />
 
       {/* ตัวกรอง + ส่งออก */}
       <div className="mb-4 flex items-center justify-between gap-3">
